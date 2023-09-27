@@ -786,9 +786,9 @@ MuseScore {
                         font.family: "segoe UI"
                         hoverEnabled: true
                         opacity: hovered ? 0.8:1
-                        from: -2
+                        from: -100
                         value: 0
-                        to: 2
+                        to: 99
                         stepSize: 1
 
                         textFromValue: function (value) {
