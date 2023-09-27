@@ -616,7 +616,7 @@ MuseScore {
                 }
                 TabButton {
                     id: reverseTab
-                    text: "Reverse..." 
+                    text: "Retrograde..." 
                   
                     height: parent.height 
                     background: Rectangle {
