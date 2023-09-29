@@ -429,47 +429,26 @@ MuseScore {
                                     
                               }
                               if(invType==0){///if diatonic
-                                   var Map=getDiatonicMap()                                                                                            
+                                    var Map=getDiatonicMap()                                                                                            
                                    
-                                    if (Map.scale.includes(el.notes[n].pitch)){ 
-                                        var noteDeg=Map.scale.indexOf(el.notes[n].pitch)
-                                    }
-                                    else{////pivot pitch is not a diatonic note consider the closest diatonic note. ex: c# --> c;  Db--> D
-                                        var upNoteDeg=Map.scale.indexOf(el.notes[n].pitch+1) 
-
-                                        if (curScore.style.value('concertPitch')){
-                                            var upNoteTpc=Map.tpc1[upNoteDeg]
-                                        }
-                                        else{
-                                            var upNoteTpc=Map.tpc2[upNoteDeg]
-                                        }
-
-                                        if (el.notes[n].tpc+7== upNoteTpc){
-                                            var noteDeg=upNoteDeg
-                                        }
-                                        else{
-                                            var noteDeg=Map.scale.indexOf(el.notes[n].pitch-1)
-                                        }
-                                    }
-                                   
-                                   
+                                    var noteDiaIdx=getDiatonicIdx(el.notes[n])
                                    
                                     //check if pivot note is diatonic                                                                    
                                     if (Map.scale.includes(pivot.pitch)){ 
-                                        var pivotDeg=Map.scale.indexOf(pivot.pitch)
+                                        var pivotIdx=Map.scale.indexOf(pivot.pitch)
                                     }
                                     else{////pivot pitch is not a diatonic note
-                                       var nearestPivot=Map.scale.indexOf(pivot.pitch+1) 
-                                       var pivotDeg= nearestPivot-0.5
+                                       var nearestPivotIdx=Map.scale.indexOf(pivot.pitch+1) 
+                                       var pivotIdx= nearestPivotIdx-0.5
                                     }
                                     
                                     ///get noteIndex of inverse note
-                                    var invNoteDeg=pivotDeg-(noteDeg-pivotDeg)
+                                    var invNoteIdx=pivotIdx-(noteDiaIdx-pivotIdx)
                                    
                                     ///apply inversion
-                                    el.notes[n].pitch= Map.scale[invNoteDeg]
-                                    el.notes[n].tpc1= Map.tpc1[invNoteDeg]
-                                    el.notes[n].tpc2= Map.tpc2[invNoteDeg]
+                                    el.notes[n].pitch= Map.scale[invNoteIdx]
+                                    el.notes[n].tpc1= Map.tpc1[invNoteIdx]
+                                    el.notes[n].tpc2= Map.tpc2[invNoteIdx]
                                }                                
                         }
                 }                              
@@ -479,10 +458,8 @@ MuseScore {
             
         
         function invertUsingOutermostPitches(invType){
-           var pivot={pitch:0, tpc1:0, tpc2:0}
-           //console.log(Hnote.pitch, Lnote.pitch)
-           pivot.pitch = Lnote.pitch+(Hnote.pitch-Lnote.pitch)/2 
-           //console.log(pivot.pitch)
+           var pivot={pitch:0, tpc1:0, tpc2:0}        
+           pivot.pitch = Lnote.pitch+(Hnote.pitch-Lnote.pitch)/2            
            pivot.tpc1=Lnote.tpc1+(Hnote.tpc1-Lnote.tpc1)/2 
            pivot.tpc2=Lnote.tpc2+(Hnote.tpc2-Lnote.tpc2)/2  
 
@@ -499,45 +476,16 @@ MuseScore {
 
                         if (invType==0){///diatonic
                             var Map=getDiatonicMap() 
-                                                                                            
-                            if (Map.scale.includes(el.notes[n].pitch)){
-                                var noteDeg=Map.scale.indexOf(el.notes[n].pitch)
-                            }
-                            else{////pivot pitch is not a diatonic note
-                                var upNoteDeg=Map.scale.indexOf(el.notes[n].pitch+1) 
-
-                                    if (curScore.style.value('concertPitch')){
-                                        var upNoteTpc=Map.tpc1[upNoteDeg]
-                                    }
-                                    else{
-                                        var upNoteTpc=Map.tpc2[upNoteDeg]
-                                    }
-
-                                    if (el.notes[n].tpc+7== upNoteTpc){
-                                        var noteDeg=upNoteDeg
-                                    }
-                                    else{
-                                        var noteDeg=Map.scale.indexOf(el.notes[n].pitch-1)
-                                    }
-                                   //var noteDeg=Map.scale.indexOf(el.notes[n].pitch + Math.pow(-1, acc))  ///math.pow maps sharp to -1, flat to 1
-                            }          
+                            var noteDiaIdx=getDiatonicIdx(el.notes[n])
                             
+                            var LnoteDiaIdx=getDiatonicIdx(Lnote)
+                            var HnoteDiaIdx=getDiatonicIdx(Hnote)
+                            var invNoteDiaIdx= HnoteDiaIdx - (noteDiaIdx - LnoteDiaIdx ) 
                             
-                            //check if pivot note is diatonic                                                                                
-                            if (Map.scale.includes(pivot.pitch)){
-                                var pivotDeg=Map.scale.indexOf(pivot.pitch)
-                            }
-                            else{////pivot pitch is not a diatonic note
-                                var nearestPivot=Map.scale.indexOf(pivot.pitch+1) 
-                                var pivotDeg= nearestPivot-0.5
-                            }
-                            ///get noteIndex of inverse note
-                            var invNoteDeg=pivotDeg-(noteDeg-pivotDeg)
-                            
-                            ///apply inversion
-                            el.notes[n].pitch= Map.scale[invNoteDeg]
-                            el.notes[n].tpc1= Map.tpc1[invNoteDeg]
-                            el.notes[n].tpc2= Map.tpc2[invNoteDeg]
+                            el.notes[n].pitch= Map.scale[invNoteDiaIdx]
+                            el.notes[n].tpc1= Map.tpc1[invNoteDiaIdx]
+                            el.notes[n].tpc2= Map.tpc2[invNoteDiaIdx]
+                       
                         }
                     }
                     
@@ -546,14 +494,42 @@ MuseScore {
             } //end while
         }   ///end func
             
+        function getDiatonicIdx(note){
+            var Map=getDiatonicMap()
             
+            /// if diatonic note 
+            if (Map.scale.includes(note.pitch)){                        
+                var diaNoteIdx=Map.scale.indexOf(note.pitch)
+                return diaNoteIdx
+            }
+            else{//// if pitch is not a diatonic note
+                var nextDiaNoteIdx=Map.scale.indexOf(note.pitch+1) 
+
+                if (curScore.style.value('concertPitch')){
+                    var nextDiaNoteTpc=Map.tpc1[nextDiaNoteIdx]
+                }
+                else{
+                    var nextDiaNoteTpc=Map.tpc2[nextDiaNoteIdx]
+                }
+
+                if (note.tpc+7== nextDiaNoteTpc){
+                    var diaNoteIdx=nextDiaNoteIdx
+                    return diaNoteIdx
+                }
+                else{
+                    var diaNoteIdx=Map.scale.indexOf(note.pitch-1)
+                    return diaNoteIdx
+                }
+                //var noteDeg=Map.scale.indexOf(el.notes[n].pitch + Math.pow(-1, acc))  ///math.pow maps sharp to -1, flat to 1
+            }
+        }    
             
         
         
             
+        curScore.selection.selectRange(startTick, endTick, startStaff, endStaff);
         curScore.endCmd()
         
-        curScore.selection.selectRange(startTick, endTick, startStaff, endStaff);
         
       
     }/// end transfor  
