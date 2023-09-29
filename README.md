@@ -16,14 +16,13 @@ A MuseScore 4.x plugin that performs the rotation, retrograde, and inversion tra
 
  ## Demo
  *Rotation:*   
- 
- ![move](https://github.com/Ash-86/Move-Selection/assets/108089527/4822e543-07fb-4eef-819d-17feae32a988)
+ ![rotate](https://github.com/Ash-86/Pitch-and-Rhythm-Transformer/assets/108089527/47eac075-9f28-44db-832e-3804f7129803) 
 
  *Retrograde:*
- 
- ![duplicate](https://github.com/Ash-86/Move-Selection/assets/108089527/cf4bd263-dd33-470e-8b81-dc28dd9299b0)
+ ![reverse](https://github.com/Ash-86/Pitch-and-Rhythm-Transformer/assets/108089527/43d5e667-f533-4a68-bd29-86c848a2758a) 
 
  *Inversion:*
+![invert](https://github.com/Ash-86/Pitch-and-Rhythm-Transformer/assets/108089527/6f0d119f-8525-4306-b854-9df0c6457efc)
 
  ## Download and install
  Download the entire folder, unzip and paste in your MuseScore 4 plugins folder. For more details on installation see [link](https://musescore.org/en/handbook/3/plugins#installation).
