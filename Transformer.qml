@@ -1154,10 +1154,10 @@ MuseScore {
             // }    
 
             Shortcut {
-                sequence: StandardKey.Quit//"Escape"
-                enabled: true
-                context: Qt.WindowShortcut//Qt.ApplicationShortcut
-                onActivated: quit()
+                sequence: "Esc"//StandardKey.Quit//"Escape"
+                //enabled: true
+                //context: Qt.WindowShortcut//Qt.ApplicationShortcut
+                onActivated: {quit()}
                 
             } 
             
