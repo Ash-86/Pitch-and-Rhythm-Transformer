@@ -43,13 +43,6 @@ MuseScore {
     
     function applyTransform(){
         
-        
-        if (!curScore.selection) {
-            errorDialog.text="No valid range selection on current score!"
-            errorDialog.open()
-            return;
-        }       
-        
         var cursor = curScore.newCursor(); 
 
         /////// Get Selection //////////////////////////
@@ -73,14 +66,14 @@ MuseScore {
         var onlyPitches=[]
         var Pitches=[]
         var Rhythm=[]
-        var Hnote={pitch:0, tpc1:0, tpc2:0}
-        var Lnote={pitch:128, tpc1:128, tpc2:128}
+        var Hnote={pitch:0, tpc1:0, tpc2:0} ///highest Note
+        var Lnote={pitch:128, tpc1:128, tpc2:128} //lowest note
         while (cursor.segment != null && cursor.tick < endTick) {
             var dur= [];
             var tupdur = [];
             var ratio = [];
             var chord=[]
-            var atMeasureEnd= false
+            var atMeasureEnd= false //for future development for cross bar tuplets division
 
             var el=cursor.element
 
@@ -107,7 +100,7 @@ MuseScore {
                     chord.push(chordNote)
                     //chord.push([pitch,tpc, tpc1,tpc2]) 
                 }
-                onlyPitches.push(chord)
+                onlyPitches.push(chord)  ///array without rests
             } 
 
             if(el.tuplet) { // tuplets are a special case
@@ -132,13 +125,6 @@ MuseScore {
             cursor.next();
         }
         /////////////////////////////////////////////////////////////
-        console.log(Pitches[0], Pitches[1], Pitches[2],Pitches[3])
-        
-        if (!Pitches.length) {
-            errorDialog.text="No valid range selection on current score!"
-            errorDialog.open()
-            return;
-        }
         
         cursor.rewind(1) 
        
@@ -159,7 +145,6 @@ MuseScore {
             editPitches(Pitches)
         }
         if (rotateRhythmBox.checked){
-                     
             var Rhythm= rotateArray(Rhythm,step)
             reWrite(Pitches,Rhythm)
         }
@@ -182,22 +167,21 @@ MuseScore {
             reWrite(Pitches,Rhythm)
         }
         if (invertByPitch.checked){
-             var accidental=accidentalBox.currentText
-             var octave=octaveBox.value
-             var noteIdx=noteBox.currentIndex
+            var accidental=accidentalBox.currentText
+            var octave=octaveBox.value
+            var noteIdx=noteBox.currentIndex
              
             var pivot= getPivot(noteIdx,accidental, octave)
-            //var invType= "chromatic"
-            //console.log(invertType.position)
             var enharmonic= true //false
             invert(pivot, invertType.position)
-        
-            
         }
         if (invertByOutermostPitchesBox.checked){
             invertUsingOutermostPitches(invertType.position)
         }
-        ////////////////////////
+
+        curScore.selection.selectRange(startTick, endTick, startStaff, endStaff);
+        curScore.endCmd()
+        //////////////////////////////////////////////////////////////////////
         
         function editPitches(Pitches){
                       
@@ -527,8 +511,7 @@ MuseScore {
         
         
             
-        curScore.selection.selectRange(startTick, endTick, startStaff, endStaff);
-        curScore.endCmd()
+        
         
         
       
@@ -1122,8 +1105,13 @@ MuseScore {
                             errorDialog.text="Please select an option to perform a transformation."
                             errorDialog.open()
                         }
+                        if (!curScore.selection.length) {
+                            errorDialog.text="No valid range selection on current score!"
+                            errorDialog.open()
+                            //return;
+                        }       
                         else{         
-                                applyTransform()
+                            applyTransform()
                         }
                     }      
                 }
