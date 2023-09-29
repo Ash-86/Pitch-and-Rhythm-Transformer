@@ -126,6 +126,12 @@ MuseScore {
         }
         /////////////////////////////////////////////////////////////
         
+        if (!onlyPitches.length) {
+            errorDialog.text="Selection empty. No changes made!"            
+            errorDialog.open()                       
+            return     
+        }   
+        /////////////////////////////////////////////////////////////
         cursor.rewind(1) 
        
         curScore.startCmd()
@@ -1101,15 +1107,17 @@ MuseScore {
         
                      }                   
                     onClicked: {
+
                         if ( !rotatePitchesBox.checked && !rotateRhythmBox.checked && !rotateBothBox.checked &&  !reversePitchesBox.checked && !reverseRhythmBox.checked && !reverseBothBox.checked && !invertByPitch.checked && !invertByOutermostPitchesBox.checked){
                             errorDialog.text="Please select an option to perform a transformation."
                             errorDialog.open()
                         }
-                        if (!curScore.selection.length) {
-                            errorDialog.text="No valid range selection on current score!"
-                            errorDialog.open()
-                            //return;
-                        }       
+                        var cursor=curScore.newCursor()
+                        cursor.rewind(1)
+                        if (!cursor.segment) {
+                            errorDialog.text="No valid range selection on current score!"            
+                            errorDialog.open() 
+                        }   
                         else{         
                             applyTransform()
                         }
