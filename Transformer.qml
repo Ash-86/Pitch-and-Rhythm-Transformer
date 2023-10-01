@@ -63,65 +63,60 @@ MuseScore {
         ///////////////////////////////////////////////////
     
         ///////////   Get arrays: Pitches, onlyPitches, Rhythm (durations)///////
-        var onlyPitches=[]
+        var onlyPitches=[]///without rests
         var Pitches=[]
         var Rhythm=[]
         var Hnote={pitch:0, tpc1:0, tpc2:0} ///highest Note
         var Lnote={pitch:128, tpc1:128, tpc2:128} //lowest note
-        while (cursor.segment != null && cursor.tick < endTick) {
-            var dur= [];
-            var tupdur = [];
-            var ratio = [];
-            var chord=[]
-            var atMeasureEnd= false //for future development for cross bar tuplets division
-
+        while (cursor.segment != null && cursor.tick < endTick) {            
+            var chord=[]           
             var el=cursor.element
 
             if(el.type == Element.REST) { 
                 var chord = 'REST'; 
             }
             if (el.type == Element.CHORD) {
-                for (var n in el.notes){
-                    var pitch = el.notes[n].pitch 
-                    var tpc = el.notes[n].tpc
-                    var tpc1 = el.notes[n].tpc1
-                    var tpc2 = el.notes[n].tpc2
-                    if(pitch>Hnote.pitch){
-                        Hnote.pitch=pitch, 
-                        Hnote.tpc1=tpc1, 
-                        Hnote.tpc2=tpc2
+                for (var n in el.notes){                    
+                    if(el.notes[n].pitch > Hnote.pitch){
+                        Hnote.pitch = el.notes[n].pitch
+                        Hnote.tpc1 = el.notes[n].tpc1
+                        Hnote.tpc2 = el.notes[n].tpc2
                     }
-                    if(pitch<Lnote.pitch){
-                        Lnote.pitch=pitch, 
-                        Lnote.tpc1=tpc1, 
-                        Lnote.tpc2=tpc2
+                    if(el.notes[n].pitch < Lnote.pitch){
+                        Lnote.pitch = el.notes[n].pitch
+                        Lnote.tpc1 = el.notes[n].tpc1
+                        Lnote.tpc2 = el.notes[n].tpc2
                     }  
-                    var chordNote={pitch:pitch, tpc:tpc, tpc1:tpc1, tpc2:tpc2}
+                    var chordNote ={ 
+                        pitch: el.notes[n].pitch, 
+                        tpc: el.notes[n].tpc, 
+                        tpc1: el.notes[n].tpc1, 
+                        tpc2: el.notes[n].tpc2 
+                    }
+                                    
                     chord.push(chordNote)
                     //chord.push([pitch,tpc, tpc1,tpc2]) 
                 }
                 onlyPitches.push(chord)  ///array without rests
             } 
+            Pitches.push(chord)
+
+            const durations={ 
+                dur: [el.duration.numerator, el.duration.denominator],
+                tupdur: 0,
+                ratio: 0,
+                tuplength: 0,                              
+                atMeasureEnd: cursor.tick===cursor.measure.lastSegment.tick 
+            }
 
             if(el.tuplet) { // tuplets are a special case
-                tupdur.push(el.tuplet.globalDuration.numerator);
-                tupdur.push(el.tuplet.globalDuration.denominator);
-                ratio.push(el.tuplet.actualNotes);
-                ratio.push(el.tuplet.normalNotes);
-                var tupLength= el.tuplet.elements.length
-            }
-            if (cursor.tick==cursor.measure.lastSegment.tick){
-                atMeasureEnd=true
-            }
-            dur.push(el.duration.numerator); // numerator of duration
-            dur.push(el.duration.denominator); // denominator of duration
-            const durations={dur: dur, 
-                            tupdur: tupdur, 
-                            ratio: ratio , 
-                            atMeasureEnd: atMeasureEnd,
-                            tupLength: tupLength}
+                durations.tupdur = [el.tuplet.globalDuration.numerator, el.tuplet.globalDuration.denominator]
+                durations.ratio = [el.tuplet.actualNotes, el.tuplet.normalNotes]
+                durations.tupLength= el.tuplet.elements.length
+            }            
+            
             Rhythm.push(durations)
-            Pitches.push(chord) 
+             
             cursor.next();
         }
         /////////////////////////////////////////////////////////////
