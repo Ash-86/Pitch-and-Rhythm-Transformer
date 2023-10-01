@@ -387,9 +387,6 @@ MuseScore {
                 }
             }
             return
-        //     if (tpcValue<10){return tpcValue+=12}        
-        //    if (tpcValue>21){return tpcValue-=12}
-        //    else{ return tpcValue} 
         }      
         
         function getDiatonicMap(){
