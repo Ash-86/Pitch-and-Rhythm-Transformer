@@ -346,10 +346,49 @@ MuseScore {
             return pivot
        }          
          
-        function getEnharmonic(tpcValue){ //confine tpc values between 11 and 21 in order to not have double sharps or doulble flats
-           if (tpcValue<10){return tpcValue+=12}        
-           if (tpcValue>21){return tpcValue-=12}
-           else{ return tpcValue} 
+        function getEnharmonic(){ //confine tpc values between 11 and 21 in order to not have double sharps or doulble flats
+            cursor.rewindToTick(startTick)
+            var tpcOverflow=0
+            while (cursor.segment && cursor.tick < endTick) {
+                var el=cursor.element                                       
+                if (el.type == Element.CHORD) {                                   
+                    for ( var n=0; n<el.notes.length; n++){   
+                        if (el.notes[n].tpc>26){
+                            tpcOverflow=1
+                            break
+                        }
+                        if (el.notes[n].tpc<6){
+                            tpcOverflow=-1
+                            break                            
+                        }
+                    }
+                }
+                cursor.next()
+           }
+
+            if (tpcOverflow!=0){
+                cursor.rewindToTick(startTick)
+                while (cursor.segment && cursor.tick < endTick) {
+                    var el=cursor.element                                       
+                    if (el.type == Element.CHORD) {                                   
+                        for ( var n=0; n<el.notes.length; n++){                                           
+                            if (tpcOverflow==1){
+                                el.notes[n].tpc1-= 12  
+                                el.notes[n].tpc2-= 12 
+                            }
+                            if (tpcOverflow==-1){
+                                el.notes[n].tpc1+= 12  
+                                el.notes[n].tpc2+= 12 
+                            }
+                        }
+                    }
+                    cursor.next()
+                }
+            }
+            return
+        //     if (tpcValue<10){return tpcValue+=12}        
+        //    if (tpcValue>21){return tpcValue-=12}
+        //    else{ return tpcValue} 
         }      
         
         function getDiatonicMap(){
@@ -411,7 +450,6 @@ MuseScore {
                                     //       el.notes[n].tpc1= getEnharmonic(el.notes[n].tpc1)
                                     //       el.notes[n].tpc2= getEnharmonic(el.notes[n].tpc2)
                                     // }
-                                    
                               }
                               if(invType==0){///if diatonic
                                     var Map=getDiatonicMap()                                                                                            
@@ -439,6 +477,7 @@ MuseScore {
                 }                              
               cursor.next()             
             } 
+            getEnharmonic()
         }     
             
         
