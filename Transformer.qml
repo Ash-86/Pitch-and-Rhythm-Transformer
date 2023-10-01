@@ -349,17 +349,18 @@ MuseScore {
         function getEnharmonic(){ //confine tpc values between 11 and 21 in order to not have double sharps or doulble flats
             cursor.rewindToTick(startTick)
             var tpcOverflow=0
+            whileLoop:
             while (cursor.segment && cursor.tick < endTick) {
                 var el=cursor.element                                       
                 if (el.type == Element.CHORD) {                                   
                     for ( var n=0; n<el.notes.length; n++){   
                         if (el.notes[n].tpc>26){
                             tpcOverflow=1
-                            break
+                            break whileLoop
                         }
                         if (el.notes[n].tpc<6){
                             tpcOverflow=-1
-                            break                            
+                            break whileLoop                        
                         }
                     }
                 }
