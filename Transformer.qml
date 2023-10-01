@@ -130,7 +130,7 @@ MuseScore {
         cursor.rewind(1) 
        
         curScore.startCmd()
-        //// if tuplet at ends of selection change step to number of tuplet notes
+        //// if tuplet at ends of selection change rotation step to number of tuplet notes
         if (Rhythm[Rhythm.length-1].ratio[0]>0 && stepBox.val>0){
             var step =Rhythm[Rhythm.length-1].tupLength
         }
