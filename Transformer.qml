@@ -170,10 +170,9 @@ MuseScore {
         if (invertByPitch.checked){
             var accidental=accidentalBox.currentText
             var octave=octaveBox.value
-            var noteIdx=noteBox.currentIndex
+            var noteValue=noteBox.currentText
              
-            var pivot= getPivot(noteIdx,accidental, octave)
-            var enharmonic= true //false
+            var pivot= getPivot(noteValue,accidental, octave)
             invert(pivot, invertType.position)
         }
         if (invertByOutermostPitchesBox.checked){
@@ -304,7 +303,7 @@ MuseScore {
              }
          }
          
-        function getPivot(noteIdx, accidental, octave){ ////calculate pivot pitch and tpc values from user input
+        function getPivot(noteValue, accidental, octave){ ////calculate pivot pitch and tpc values from user input
              var trans=getTrans()  
              if (curScore.style.value('concertPitch')){ 
                    var TV=[0,0,trans] // Transposition Vector [pitch, tpc1, tpc2]
@@ -312,16 +311,17 @@ MuseScore {
              else{ 
                    var TV=[-trans,-trans,0]
             }
-        
-             const C={pitch:0 + TV[0],tpc1:14 + TV[1], tpc2:14 + TV[2]} //12
-             const D={pitch:2+ TV[0],tpc1:16 + TV[1], tpc2:16 + TV[2]}// 14
-             const E={pitch:4+ TV[0],tpc1:18 + TV[1], tpc2:18 + TV[2]} //16
-             const F={pitch:5+ TV[0],tpc1:13 + TV[1], tpc2:13 + TV[2]} //17
-             const G={pitch:7+ TV[0],tpc1:15 + TV[1], tpc2:15 + TV[2]} //19
-             const A={pitch:9+ TV[0],tpc1:17 + TV[1], tpc2:17 + TV[2]} //21
-             const B={pitch:11+ TV[0],tpc1:19 + TV[1], tpc2:19 + TV[2]}//22
-             var notes=[C,D,E,F,G,A,B]
-             var note= notes[noteIdx] 
+
+            const notes={
+                C:{pitch:0 + TV[0],tpc1:14 + TV[1], tpc2:14 + TV[2]}, 
+                E:{pitch:4+ TV[0],tpc1:18 + TV[1], tpc2:18 + TV[2]} ,
+                D:{pitch:2+ TV[0],tpc1:16 + TV[1], tpc2:16 + TV[2]},
+                F:{pitch:5+ TV[0],tpc1:13 + TV[1], tpc2:13 + TV[2]} ,
+                G:{pitch:7+ TV[0],tpc1:15 + TV[1], tpc2:15 + TV[2]} ,
+                A:{pitch:9+ TV[0],tpc1:17 + TV[1], tpc2:17 + TV[2]} ,
+                B:{pitch:11+ TV[0],tpc1:19 + TV[1], tpc2:19 + TV[2]}
+            }            
+            var note= notes[noteValue] 
             
             
             //MS starts counting octaves from -1, therefore the need to add 1 to octave
@@ -332,19 +332,19 @@ MuseScore {
                 var pivot={pitch:(note.pitch-1)+(octave+1)*12, 
                             tpc1:note.tpc1-7, 
                             tpc2:note.tpc2-7} 
-             }        
+            }        
             if(accidental=="♯"){
                 var pivot={pitch:(note.pitch+1)+(octave+1)*12, 
                             tpc1:note.tpc1+7, 
                             tpc2:note.tpc2+7}
-             }  
+            }  
             if(accidental=="♮"){
                 var pivot={pitch:note.pitch+(octave+1)*12, 
                             tpc1:note.tpc1, 
                             tpc2:note.tpc2}
             }
             return pivot
-       }          
+        }          
          
         function getEnharmonic(){ //confine tpc values between 11 and 21 in order to not have double sharps or doulble flats
             cursor.rewindToTick(startTick)
@@ -404,74 +404,67 @@ MuseScore {
                       tpc2s[(pos)%7]+=7
                       pos=(pos+4)%7                                       
                 }
-             }
-             if (keySig<0) {//if flat signature
-                 var pos=6///start circle of 4th from B
-                 for (var i=0; i<keySig;i++){                                       
-                      scale[(pos)%7]-=1 //minus half step
-                      tpc1s[(pos)%7]-=7
-                      tpc2s[(pos)%7]-=7
-                      pos=(pos+3)%7                                       
-                 }                                   
-              }
-                                   
-              //console.log(scale)                     
-              var scaleMap=[]
-              var tpc1Map=[]
-              var tpc2Map=[]
-                                   
-              for (var j=0; j<11;j++){
-                  scaleMap=scaleMap.concat(scale)
-                  tpc1Map=tpc1Map.concat(tpc1s)
-                  tpc2Map=tpc2Map.concat(tpc2s)
-                  for (var i=0;i<scale.length; i++){
-                       scale[i]+=12                                          
-                  }                                                                                                                        
-              }
-                                   
-             const Map={scale:scaleMap, tpc1:tpc1Map, tpc2:tpc2Map}
-             return Map 
-         }   
+            }
+            if (keySig<0) {//if flat signature
+                var pos=6///start circle of 4th from B
+                for (var i=0; i<keySig;i++){                                       
+                    scale[(pos)%7]-=1 //minus half step
+                    tpc1s[(pos)%7]-=7
+                    tpc2s[(pos)%7]-=7
+                    pos=(pos+3)%7                                       
+                }                                   
+            }
+                            
+            var scaleMap=[]
+            var tpc1Map=[]
+            var tpc2Map=[]
+                                
+            for (var j=0; j<11;j++){
+                scaleMap=scaleMap.concat(scale)
+                tpc1Map=tpc1Map.concat(tpc1s)
+                tpc2Map=tpc2Map.concat(tpc2s)
+                for (var i=0;i<scale.length; i++){
+                    scale[i]+=12                                          
+                }                                                                                                                        
+            }
+                                
+            const Map={scale:scaleMap, tpc1:tpc1Map, tpc2:tpc2Map}
+            return Map 
+        }   
                                 
         function invert(pivot, invType){         
             while (cursor.segment && cursor.tick < endTick) {
                 var el=cursor.element                                       
                 if (el.type == Element.CHORD) {                                   
-                        for ( var n=0; n<el.notes.length; n++){                                              
-                              if (invType==1){///chromatic
-                                    el.notes[n].pitch= pivot.pitch -(el.notes[n].pitch - pivot.pitch)                              
-                                     //el.notes[n].tpc=  pivot.tpc -(el.notes[n].tpc-pivot.tpc)
-                                    el.notes[n].tpc1=  pivot.tpc1 -(el.notes[n].tpc1 - pivot.tpc1)
-                                    el.notes[n].tpc2=  pivot.tpc2 -(el.notes[n].tpc2 - pivot.tpc2)
-                                    // if (enharmonic){
-                                    // console.log(el.notes[n].tpc1)
-                                    //       el.notes[n].tpc1= getEnharmonic(el.notes[n].tpc1)
-                                    //       el.notes[n].tpc2= getEnharmonic(el.notes[n].tpc2)
-                                    // }
-                              }
-                              if(invType==0){///if diatonic
-                                    var Map=getDiatonicMap()                                                                                            
-                                   
-                                    var noteDiaIdx=getDiatonicIdx(el.notes[n])
-                                   
-                                    //check if pivot note is diatonic                                                                    
-                                    if (Map.scale.includes(pivot.pitch)){ 
-                                        var pivotIdx=Map.scale.indexOf(pivot.pitch)
-                                    }
-                                    else{////pivot pitch is not a diatonic note
-                                       var nearestPivotIdx=Map.scale.indexOf(pivot.pitch+1) 
-                                       var pivotIdx= nearestPivotIdx-0.5
-                                    }
-                                    
-                                    ///get noteIndex of inverse note
-                                    var invNoteIdx=pivotIdx-(noteDiaIdx-pivotIdx)
-                                   
-                                    ///apply inversion
-                                    el.notes[n].pitch= Map.scale[invNoteIdx]
-                                    el.notes[n].tpc1= Map.tpc1[invNoteIdx]
-                                    el.notes[n].tpc2= Map.tpc2[invNoteIdx]
-                               }                                
+                    for ( var n=0; n<el.notes.length; n++){                                              
+                        if (invType==1){///chromatic
+                            el.notes[n].pitch= pivot.pitch -(el.notes[n].pitch - pivot.pitch)   
+                            el.notes[n].tpc1=  pivot.tpc1 -(el.notes[n].tpc1 - pivot.tpc1)
+                            el.notes[n].tpc2=  pivot.tpc2 -(el.notes[n].tpc2 - pivot.tpc2)                                    
                         }
+                        if(invType==0){///if diatonic
+                            var Map=getDiatonicMap()                                                                                            
+                            
+                            var noteDiaIdx=getDiatonicIdx(el.notes[n])
+                            
+                            //check if pivot note is diatonic                                                                    
+                            if (Map.scale.includes(pivot.pitch)){ 
+                                var pivotIdx=Map.scale.indexOf(pivot.pitch)
+                            }
+                            else{////pivot pitch is not a diatonic note
+                                var nearestPivotIdx=Map.scale.indexOf(pivot.pitch+1) 
+                                var pivotIdx= nearestPivotIdx-0.5
+                            }
+                            
+                            ///get noteIndex of inverse note
+                            var invNoteIdx=pivotIdx-(noteDiaIdx-pivotIdx)
+                            
+                            ///apply inversion
+                            el.notes[n].pitch= Map.scale[invNoteIdx]
+                            el.notes[n].tpc1= Map.tpc1[invNoteIdx]
+                            el.notes[n].tpc2= Map.tpc2[invNoteIdx]
+                        }                                
+                    }
                 }                              
               cursor.next()             
             } 
@@ -490,7 +483,7 @@ MuseScore {
                 if (el.type == Element.CHORD) {                                   
                     for ( var n=0; n<el.notes.length; n++){  
 
-                         if (invType==1){///chromatic 
+                        if (invType==1){///chromatic 
                             el.notes[n].pitch= pivot.pitch -(el.notes[n].pitch - pivot.pitch)
                             el.notes[n].tpc1= pivot.tpc1 -(el.notes[n].tpc1 - pivot.tpc1)
                             el.notes[n].tpc2= pivot.tpc2 -(el.notes[n].tpc2 - pivot.tpc2)
@@ -991,7 +984,7 @@ MuseScore {
                             hoverEnabled: true
                             opacity: hovered ? 0.8:1         
                             model: ListModel {
-                                //id: notesList                        
+                                id: noteList                        
                                 ListElement { text: "C" }
                                 ListElement { text: "D" }
                                 ListElement { text: "E" }
