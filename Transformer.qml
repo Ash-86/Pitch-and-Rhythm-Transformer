@@ -393,8 +393,9 @@ MuseScore {
             var trans=getTrans()
             var keySig= curScore.keysig 
             var scale=[0,2,4,5,7,9,11]
-            var tpc1s=[14,16,18,13,15,17,19]                                    
-            var tpc2s=[14+trans,16+trans,18+trans,13+trans,15+trans,17+trans,19+trans]         
+            var tpc1s=[14,16,18,13,15,17,19]
+            var tpc2s=tpc1s.map((x) => x+trans)                                     
+            //var tpc2s=[14+trans,16+trans,18+trans,13+trans,15+trans,17+trans,19+trans]         
             ///adjust map to key signature
             if (keySig>0) {//if sharp signature
                 var pos=3  ///start circle of 4th from F                                   
@@ -407,7 +408,7 @@ MuseScore {
             }
             if (keySig<0) {//if flat signature
                 var pos=6///start circle of 4th from B
-                for (var i=0; i<keySig;i++){                                       
+                for (var i=0; i<-keySig;i++){                                       
                     scale[(pos)%7]-=1 //minus half step
                     tpc1s[(pos)%7]-=7
                     tpc2s[(pos)%7]-=7
@@ -423,12 +424,10 @@ MuseScore {
                 scaleMap=scaleMap.concat(scale)
                 tpc1Map=tpc1Map.concat(tpc1s)
                 tpc2Map=tpc2Map.concat(tpc2s)
-                for (var i=0;i<scale.length; i++){
-                    scale[i]+=12                                          
-                }                                                                                                                        
+                scale=scale.map((x) => x+12)                                                                                                        
             }
                                 
-            const Map={scale:scaleMap, tpc1:tpc1Map, tpc2:tpc2Map}
+            const Map={pitch:scaleMap, tpc1:tpc1Map, tpc2:tpc2Map}
             return Map 
         }   
                                 
@@ -448,11 +447,11 @@ MuseScore {
                             var noteDiaIdx=getDiatonicIdx(el.notes[n])
                             
                             //check if pivot note is diatonic                                                                    
-                            if (Map.scale.includes(pivot.pitch)){ 
-                                var pivotIdx=Map.scale.indexOf(pivot.pitch)
+                            if (Map.pitch.includes(pivot.pitch)){ 
+                                var pivotIdx=Map.pitch.indexOf(pivot.pitch)
                             }
                             else{////pivot pitch is not a diatonic note
-                                var nearestPivotIdx=Map.scale.indexOf(pivot.pitch+1) 
+                                var nearestPivotIdx=Map.pitch.indexOf(pivot.pitch+1) 
                                 var pivotIdx= nearestPivotIdx-0.5
                             }
                             
@@ -460,7 +459,7 @@ MuseScore {
                             var invNoteIdx=pivotIdx-(noteDiaIdx-pivotIdx)
                             
                             ///apply inversion
-                            el.notes[n].pitch= Map.scale[invNoteIdx]
+                            el.notes[n].pitch= Map.pitch[invNoteIdx]
                             el.notes[n].tpc1= Map.tpc1[invNoteIdx]
                             el.notes[n].tpc2= Map.tpc2[invNoteIdx]
                         }                                
@@ -497,7 +496,7 @@ MuseScore {
                             var HnoteDiaIdx=getDiatonicIdx(Hnote)
                             var invNoteDiaIdx= HnoteDiaIdx - (noteDiaIdx - LnoteDiaIdx ) 
                             
-                            el.notes[n].pitch= Map.scale[invNoteDiaIdx]
+                            el.notes[n].pitch= Map.pitch[invNoteDiaIdx]
                             el.notes[n].tpc1= Map.tpc1[invNoteDiaIdx]
                             el.notes[n].tpc2= Map.tpc2[invNoteDiaIdx]
                        
@@ -513,12 +512,12 @@ MuseScore {
             var Map=getDiatonicMap()
             
             /// if diatonic note 
-            if (Map.scale.includes(note.pitch)){                        
-                var diaNoteIdx=Map.scale.indexOf(note.pitch)
+            if (Map.pitch.includes(note.pitch)){                        
+                var diaNoteIdx=Map.pitch.indexOf(note.pitch)
                 return diaNoteIdx
             }
             else{//// if pitch is not a diatonic note
-                var nextDiaNoteIdx=Map.scale.indexOf(note.pitch+1) 
+                var nextDiaNoteIdx=Map.pitch.indexOf(note.pitch+1) 
 
                 if (curScore.style.value('concertPitch')){
                     var nextDiaNoteTpc=Map.tpc1[nextDiaNoteIdx]
@@ -532,10 +531,10 @@ MuseScore {
                     return diaNoteIdx
                 }
                 else{
-                    var diaNoteIdx=Map.scale.indexOf(note.pitch-1)
+                    var diaNoteIdx=Map.pitch.indexOf(note.pitch-1)
                     return diaNoteIdx
                 }
-                //var noteDeg=Map.scale.indexOf(el.notes[n].pitch + Math.pow(-1, acc))  ///math.pow maps sharp to -1, flat to 1
+                //var noteDeg=Map.pitch.indexOf(el.notes[n].pitch + Math.pow(-1, acc))  ///math.pow maps sharp to -1, flat to 1
             }
         }    
             
