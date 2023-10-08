@@ -1,4 +1,4 @@
-# Pitch and Rhythm Transformer *Plugin for MuseScore*
+# Pitch and Rhythm Transformer: *Plugin for MuseScore*
 
 A MuseScore 3.x/4.x plugin that performs the rotation, retrograde, and inversion transformations to pitches without altering rhythm, rhythm withou altering pitches, or transfor both pitches and rhythm. Supports multiple voices and staff selections.
 
