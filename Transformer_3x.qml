@@ -351,24 +351,34 @@ MuseScore {
         function getEnharmonic(){ //confine tpc values between 11 and 21 in order to not have double sharps or doulble flats
             cursor.rewindToTick(startTick)
             var tpcOverflow=0
-            whileLoop:
+            var Htpc=26
+            var Ltpc=6
             while (cursor.segment && cursor.tick < endTick) {
                 var el=cursor.element                                       
                 if (el.type == Element.CHORD) {                                   
                     for ( var n=0; n<el.notes.length; n++){   
-                        if (el.notes[n].tpc>26){
+                        if (el.notes[n].tpc>Htpc){
                             tpcOverflow=1
-                            break whileLoop
+                            Htpc=el.notes[n].tpc                            
                         }
-                        if (el.notes[n].tpc<6){
+                        if (el.notes[n].tpc<Ltpc){
                             tpcOverflow=-1
-                            break whileLoop                        
+                            Ltpc=el.notes[n].tpc                                                    
                         }
                     }
                 }
                 cursor.next()
-           }
-
+            }
+            
+            var counter=0
+            while (Htpc>26){
+                Htpc-=12
+                counter++
+            }
+            while (Ltpc<6){
+                Ltpc+=12
+                counter++
+            }
             if (tpcOverflow!=0){
                 cursor.rewindToTick(startTick)
                 while (cursor.segment && cursor.tick < endTick) {
@@ -376,12 +386,12 @@ MuseScore {
                     if (el.type == Element.CHORD) {                                   
                         for ( var n=0; n<el.notes.length; n++){                                           
                             if (tpcOverflow==1){
-                                el.notes[n].tpc1-= 12  
-                                el.notes[n].tpc2-= 12 
+                                el.notes[n].tpc1-= counter*12  
+                                el.notes[n].tpc2-= counter*12 
                             }
                             if (tpcOverflow==-1){
-                                el.notes[n].tpc1+= 12  
-                                el.notes[n].tpc2+= 12 
+                                el.notes[n].tpc1+= counter*12  
+                                el.notes[n].tpc2+= counter*12 
                             }
                         }
                     }
