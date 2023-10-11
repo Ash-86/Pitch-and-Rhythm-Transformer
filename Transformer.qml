@@ -26,9 +26,9 @@ import QtQuick.Dialogs 1.2
 import MuseScore 3.0
 
 MuseScore {
-        menuPath: "Plugins.Pitch and Rhythm Transformer"
+    menuPath: "Plugins.Pitch and Rhythm Transformer"
     description: "Rotate, reverse, or invert pitches, rhythm, or both"
-    version: "1.0"
+    version: "1.1"
     pluginType: "dialog"
 
     id: mainWindow
@@ -447,7 +447,11 @@ MuseScore {
                 tpc2Map=tpc2Map.concat(tpc2s)
                 scale=scale.map(function(x) { return x+12})                                                                                                        
             }
-                                
+            
+            for(var x=0;x<scaleMap.length;x++) {
+                console.log(scaleMap[x]+"-"+tpc1Map[x]+"-"+tpc2Map[x])
+            }
+            
             const Map={pitch:scaleMap, tpc1:tpc1Map, tpc2:tpc2Map}
             return Map 
         }   
@@ -468,8 +472,8 @@ MuseScore {
                             var noteDiaIdx=getDiatonicIdx(el.notes[n])
                             
                             //check if pivot note is diatonic                                                                    
-                            if (Map.pitch.includes(pivot.pitch)){ 
-                                var pivotIdx=Map.pitch.indexOf(pivot.pitch)
+                            if (Map.pitch.some(function(x){return x==pivot.pitch})){ 
+                            var pivotIdx=Map.pitch.indexOf(pivot.pitch)
                             }
                             else{////pivot pitch is not a diatonic note
                                 var nearestPivotIdx=Map.pitch.indexOf(pivot.pitch+1) 
@@ -478,6 +482,8 @@ MuseScore {
                             
                             ///get noteIndex of inverse note
                             var invNoteIdx=pivotIdx-(noteDiaIdx-pivotIdx)
+
+                            // console.log(" => invNoteIdx = "+invNoteIdx+" for ranges "+Map.pitch.length+", "+Map.tpc1.length+", "+Map.tpc2.length);
                             
                             ///apply inversion
                             el.notes[n].pitch= Map.pitch[invNoteIdx]
@@ -533,8 +539,8 @@ MuseScore {
             var Map=getDiatonicMap()
             
             /// if diatonic note 
-            if (Map.pitch.includes(note.pitch)){                        
-                var diaNoteIdx=Map.pitch.indexOf(note.pitch)
+            if (Map.pitch.some(function(x){return x==note.pitch})){                        
+            var diaNoteIdx=Map.pitch.indexOf(note.pitch)
                 return diaNoteIdx
             }
             else{//// if pitch is not a diatonic note
@@ -559,13 +565,6 @@ MuseScore {
             }
         }    
             
-        
-        
-            
-        
-        
-        
-      
     }/// end transfor  
 
 
@@ -1104,7 +1103,25 @@ MuseScore {
                                 color: "white"
                                 verticalAlignment: Text.AlignVCenter
                                 leftPadding: 5
-                                rightPadding: 5
+                                rightPadding: 10 + noteBox.indicator.width + noteBox.spacing
+                            }
+
+                            indicator: Canvas {
+                                x: noteBox.width - width - noteBox.rightPadding
+                                y: noteBox.topPadding + (noteBox.availableHeight - height) / 2
+                                width: 8
+                                height: 5
+                                contextType: "2d"
+
+                                onPaint: {
+                                    context.reset();
+                                    context.moveTo(0, 0);
+                                    context.lineTo(width, 0);
+                                    context.lineTo(width / 2, height);
+                                    context.closePath();
+                                    context.fillStyle = "white";
+                                    context.fill();
+                                }
                             }
                             background: Rectangle {
                                 color:"#242427"
@@ -1146,7 +1163,24 @@ MuseScore {
                                 color: "white"
                                 verticalAlignment: Text.AlignVCenter
                                 leftPadding: 5
-                                rightPadding: 5
+                                rightPadding: 15 + accidentalBox.indicator.width + accidentalBox.spacing
+                            }
+                            indicator: Canvas {
+                                x: accidentalBox.width - width - accidentalBox.rightPadding
+                                y: accidentalBox.topPadding + (accidentalBox.availableHeight - height) / 2
+                                width: 8
+                                height: 5
+                                contextType: "2d"
+
+                                onPaint: {
+                                    context.reset();
+                                    context.moveTo(0, 0);
+                                    context.lineTo(width, 0);
+                                    context.lineTo(width / 2, height);
+                                    context.closePath();
+                                    context.fillStyle = "white";
+                                    context.fill();
+                                }
                             }
                             background: Rectangle {
                                 color:"#242427"
