@@ -26,15 +26,25 @@ import QtQuick.Dialogs 1.2
 import MuseScore 3.0
 
 MuseScore {
-    
-    title: "Transform Pitches and Rhythm"
+    menuPath: "Plugins.Pitch and Rhythm Transformer"
     description: "Rotate, reverse, or invert pitches, rhythm, or both"
-    version: "1.0"
-    thumbnailName:"Transformer.jpg"
-    categoryCode:"Composition"
+    version: "1.1"
     pluginType: "dialog"
-    width : 350        
-    height : 250
+
+    id: mainWindow
+    
+    Component.onCompleted: {
+        if (mscoreMajorVersion >= 4) {
+            mainWindow.title = "Transform Pitches and Rhythm"
+            mainWindow.thumbnailName = "Transformer.jpg"
+            mainWindow.categoryCode = "Composition"
+            mainWindow.width=350
+            mainWindow.height=250
+        } else {
+            mainWindow.width=550
+            mainWindow.height=350
+        }
+    }    
         
     onRun: {
         //window.visible = true            
@@ -42,6 +52,7 @@ MuseScore {
 
     
     function applyTransform(){
+        
         
         var cursor = curScore.newCursor(); 
 
@@ -366,7 +377,8 @@ MuseScore {
                     }
                 }
                 cursor.next()
-            }
+           }
+            
             var counter=0
             while (Htpc>26){
                 Htpc-=12
@@ -403,7 +415,7 @@ MuseScore {
             var keySig= curScore.keysig 
             var scale=[0,2,4,5,7,9,11]
             var tpc1s=[14,16,18,13,15,17,19]
-            var tpc2s=tpc1s.map((x) => x+trans)                                     
+            var tpc2s=tpc1s.map(function(x) { return x+trans})                                     
             //var tpc2s=[14+trans,16+trans,18+trans,13+trans,15+trans,17+trans,19+trans]         
             ///adjust map to key signature
             if (keySig>0) {//if sharp signature
@@ -433,9 +445,13 @@ MuseScore {
                 scaleMap=scaleMap.concat(scale)
                 tpc1Map=tpc1Map.concat(tpc1s)
                 tpc2Map=tpc2Map.concat(tpc2s)
-                scale=scale.map((x) => x+12)                                                                                                        
+                scale=scale.map(function(x) { return x+12})                                                                                                        
             }
-                                
+            
+            for(var x=0;x<scaleMap.length;x++) {
+                console.log(scaleMap[x]+"-"+tpc1Map[x]+"-"+tpc2Map[x])
+            }
+            
             const Map={pitch:scaleMap, tpc1:tpc1Map, tpc2:tpc2Map}
             return Map 
         }   
@@ -456,8 +472,8 @@ MuseScore {
                             var noteDiaIdx=getDiatonicIdx(el.notes[n])
                             
                             //check if pivot note is diatonic                                                                    
-                            if (Map.pitch.includes(pivot.pitch)){ 
-                                var pivotIdx=Map.pitch.indexOf(pivot.pitch)
+                            if (Map.pitch.some(function(x){return x==pivot.pitch})){ 
+                            var pivotIdx=Map.pitch.indexOf(pivot.pitch)
                             }
                             else{////pivot pitch is not a diatonic note
                                 var nearestPivotIdx=Map.pitch.indexOf(pivot.pitch+1) 
@@ -466,6 +482,8 @@ MuseScore {
                             
                             ///get noteIndex of inverse note
                             var invNoteIdx=pivotIdx-(noteDiaIdx-pivotIdx)
+
+                            // console.log(" => invNoteIdx = "+invNoteIdx+" for ranges "+Map.pitch.length+", "+Map.tpc1.length+", "+Map.tpc2.length);
                             
                             ///apply inversion
                             el.notes[n].pitch= Map.pitch[invNoteIdx]
@@ -521,8 +539,8 @@ MuseScore {
             var Map=getDiatonicMap()
             
             /// if diatonic note 
-            if (Map.pitch.includes(note.pitch)){                        
-                var diaNoteIdx=Map.pitch.indexOf(note.pitch)
+            if (Map.pitch.some(function(x){return x==note.pitch})){                        
+            var diaNoteIdx=Map.pitch.indexOf(note.pitch)
                 return diaNoteIdx
             }
             else{//// if pitch is not a diatonic note
@@ -547,13 +565,6 @@ MuseScore {
             }
         }    
             
-        
-        
-            
-        
-        
-        
-      
     }/// end transfor  
 
 
@@ -597,11 +608,19 @@ MuseScore {
                 currentIndex: 0
                 font.family: "segoe UI"
                 font.pointSize: 10
-                palette.buttonText: "white"
                 TabButton {
                     id: rotateTab 
                     text: "Rotate..." 
                     height: parent.height
+                    contentItem: Text {
+                        text: rotateTab.text
+                        font: rotateTab.font
+                        color: "white"
+                        opacity: rotateTab.checked ? 1 : 0.8
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        elide: Text.ElideRight
+                    }
                     background: Rectangle {
                         implicitWidth: parent.width/3
                         implicitHeight: parent.height
@@ -617,6 +636,15 @@ MuseScore {
                     text: "Retrograde..." 
                   
                     height: parent.height 
+                    contentItem: Text {
+                        text: reverseTab.text
+                        font: reverseTab.font
+                        color: "white"
+                        opacity: reverseTab.checked ? 1 : 0.8
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        elide: Text.ElideRight
+                    }
                     background: Rectangle {
                         implicitWidth: parent.width/3
                         implicitHeight: parent.height
@@ -631,6 +659,15 @@ MuseScore {
                     id: invertTab 
                     text: "Invert..."  
                     height: parent.height
+                    contentItem: Text {
+                        text: invertTab.text
+                        font: invertTab.font
+                        color: "white"
+                        opacity: invertTab.checked ? 1 : 0.8
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        elide: Text.ElideRight
+                    }
                     background: Rectangle {
                         implicitWidth: parent.width/3
                         implicitHeight: parent.height
@@ -644,7 +681,7 @@ MuseScore {
             }  
             Rectangle {
                 id : decorator;
-                property real targetX: (bar.currentItem.x )%bar.width 
+                property int targetX: (mscoreMajorVersion >= 4)?bar.currentItem.x:bar.currentItem.x+bar.width-invertTab.width  // trick for MU3.6: bar.currentItem.x is negative !!
                 anchors.top: bar.bottom;
                 width: bar.currentItem.width;
                 height: 2;
@@ -681,8 +718,14 @@ MuseScore {
                     font.family: "segoe UI"
                     font.pointSize: 10
                     hoverEnabled: true
-                    opacity: hovered ? 0.8:1
-                    //palette.button: "white" 
+                    contentItem: Text {
+                        text: rotatePitchesBox.text
+                        font: rotatePitchesBox.font
+                        opacity: rotatePitchesBox.hovered ? 0.8:1
+                        color: "white"
+                        verticalAlignment: Text.AlignVCenter
+                        leftPadding: rotatePitchesBox.indicator.width + rotatePitchesBox.spacing
+                        }
                     indicator: Rectangle {
                         implicitWidth: 18
                         implicitHeight: 18
@@ -711,9 +754,16 @@ MuseScore {
                     text: qsTr("Rotate Rhythm")
                     font.family: "segoe UI"
                     font.pointSize: 10
-                    icon.color: "grey"
+                    //icon.color: "grey" 
                     hoverEnabled: true
-                    opacity: hovered ? 0.8:1
+                    contentItem: Text {
+                        text: rotateRhythmBox.text
+                        font: rotateRhythmBox.font
+                        opacity: rotateRhythmBox.hovered ? 0.8:1
+                        color: "white"
+                        verticalAlignment: Text.AlignVCenter
+                        leftPadding: rotateRhythmBox.indicator.width + rotateRhythmBox.spacing
+                        }
                     indicator: Rectangle {
                         implicitWidth: 18
                         implicitHeight: 18
@@ -742,7 +792,14 @@ MuseScore {
                     font.family: "segoe UI"
                     font.pointSize: 10
                     hoverEnabled: true
-                    opacity: hovered ? 0.8:1
+                    contentItem: Text {
+                        text: rotateBothBox.text
+                        font: rotateBothBox.font
+                        opacity: rotateBothBox.hovered ? 0.8:1
+                        color: "white"
+                        verticalAlignment: Text.AlignVCenter
+                        leftPadding: rotateBothBox.indicator.width + rotateBothBox.spacing
+                        }
                     indicator: Rectangle {
                         implicitWidth: 18
                         implicitHeight: 18
@@ -774,12 +831,15 @@ MuseScore {
                         //color: sysActivePalette.text//"#333"   
                         font.family: "segoe UI"
                         font.pointSize: 10        
+                        id: stepBoxText
+                        color: "white"
                     }
             
                     SpinBox {
                         id: stepBox
-                        anchors.verticalCenter: text.verticalCenter
-                        width: 50  
+                        anchors.verticalCenter: stepBoxText.verticalCenter
+                        // width: 50 
+                        width: (mscoreMajorVersion >= 4)?50:undefined
                         font.pointSize: 10                
                         font.family: "segoe UI"
                         hoverEnabled: true
@@ -812,7 +872,14 @@ MuseScore {
                     font.family: "segoe UI"
                     font.pointSize: 10
                     hoverEnabled: true
-                    opacity: hovered ? 0.8:1
+                    contentItem: Text {
+                        text: reversePitchesBox.text
+                        font: reversePitchesBox.font
+                        opacity: reversePitchesBox.hovered ? 0.8:1
+                        color: "white"
+                        verticalAlignment: Text.AlignVCenter
+                        leftPadding: reversePitchesBox.indicator.width + reversePitchesBox.spacing
+                        }
                     indicator: Rectangle {
                         implicitWidth: 18
                         implicitHeight: 18
@@ -841,7 +908,14 @@ MuseScore {
                     font.family: "segoe UI"
                     font.pointSize: 10 
                     hoverEnabled: true
-                    opacity: hovered ? 0.8:1  
+                    contentItem: Text {
+                        text: reverseRhythmBox.text
+                        font: reverseRhythmBox.font
+                        opacity: reverseRhythmBox.hovered ? 0.8:1  
+                        color: "white"
+                        verticalAlignment: Text.AlignVCenter
+                        leftPadding: reverseRhythmBox.indicator.width + reverseRhythmBox.spacing
+                        }
                     indicator: Rectangle {
                         implicitWidth: 18
                         implicitHeight: 18
@@ -870,7 +944,14 @@ MuseScore {
                     font.family: "segoe UI"
                     font.pointSize: 10   
                     hoverEnabled: true
-                    opacity: hovered ? 0.8:1 
+                    contentItem: Text {
+                        text: reverseBothBox.text
+                        font: reverseBothBox.font
+                        opacity: reverseBothBox.hovered ? 0.8:1 
+                        color: "white"
+                        verticalAlignment: Text.AlignVCenter
+                        leftPadding: reverseBothBox.indicator.width + reverseBothBox.spacing
+                        }
                     indicator: Rectangle {
                         implicitWidth: 18
                         implicitHeight: 18
@@ -913,6 +994,7 @@ MuseScore {
                         text: "Invert Using:"
                         font.family: "segoe UI"
                         font.pointSize: 10  
+                        color: "white"
                     }     
                     RadioButton {
                         id: invertByOutermostPitchesBox
@@ -921,27 +1003,34 @@ MuseScore {
                         font.family: "segoe UI"
                         font.pointSize: 10 
                         hoverEnabled: true  
-                        opacity: hovered ? 0.8:1    
+                        contentItem: Text {
+                            text: invertByOutermostPitchesBox.text
+                            font: invertByOutermostPitchesBox.font
+                            opacity: invertByOutermostPitchesBox.hovered ? 0.8:1    
+                            color: "white"
+                            verticalAlignment: Text.AlignVCenter
+                            leftPadding: invertByOutermostPitchesBox.indicator.width + invertByOutermostPitchesBox.spacing
+                            }
                         indicator: Rectangle {
-                        implicitWidth: 18
-                        implicitHeight: 18
-                        //x: rotatePitchesBox.leftPadding
-                        anchors.verticalCenter: parent.verticalCenter
-                        radius: 9
+                            implicitWidth: 18
+                            implicitHeight: 18
+                            //x: rotatePitchesBox.leftPadding
+                            anchors.verticalCenter: parent.verticalCenter
+                            radius: 9
                         color: "#242427"
                         border.color: "#c0c0c0"
 
-                        Rectangle {
-                            width: 10
-                            height: 10
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            anchors.verticalCenter: parent.verticalCenter
-                            
-                            radius: 5
+                            Rectangle {
+                                width: 10
+                                height: 10
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                anchors.verticalCenter: parent.verticalCenter
+                                
+                                radius: 5
                             color: invertByOutermostPitchesBox.checked ? "#2093fe" : "#242427"
                             //visible: rotatePitchesBox.checked
-                        }                       
-                    }                    
+                            }                       
+                        }                    
                     }
                     RadioButton {
                         id: invertByPitch
@@ -950,27 +1039,34 @@ MuseScore {
                         font.family: "segoe UI"
                         font.pointSize: 10 
                         hoverEnabled: true
-                        opacity: hovered ? 0.8:1   
+                        contentItem: Text {
+                            text: invertByPitch.text
+                            font: invertByPitch.font
+                            opacity: invertByPitch.hovered ? 0.8:1   
+                            color: "white"
+                            verticalAlignment: Text.AlignVCenter
+                            leftPadding: invertByPitch.indicator.width + invertByPitch.spacing
+                            }
                         indicator: Rectangle {
-                        implicitWidth: 18
-                        implicitHeight: 18
-                        //x: rotatePitchesBox.leftPadding
-                        anchors.verticalCenter: parent.verticalCenter
-                        radius: 9
+                            implicitWidth: 18
+                            implicitHeight: 18
+                            //x: rotatePitchesBox.leftPadding
+                            anchors.verticalCenter: parent.verticalCenter
+                            radius: 9
                         color: "#242427"
                         border.color: "#c0c0c0"
 
-                        Rectangle {
-                            width: 10
-                            height: 10
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            anchors.verticalCenter: parent.verticalCenter
-                            
-                            radius: 5
+                            Rectangle {
+                                width: 10
+                                height: 10
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                anchors.verticalCenter: parent.verticalCenter
+                                
+                                radius: 5
                             color: invertByPitch.checked ? "#2093fe" : "#242427"
                             //visible: rotatePitchesBox.checked
-                        }                       
-                    }
+                            }                       
+                        }
                     }
                     Row{                
                         enabled: invertByPitch.checked
@@ -984,13 +1080,13 @@ MuseScore {
                     
                         ComboBox {               
                             id: noteBox
-                            width: 40
+                            width: (mscoreMajorVersion >= 4)?40:undefined
                             height: parent.height
                             currentIndex: 0    
                             font.pointSize: 10 
                             font.family: "segoe UI" 
                             hoverEnabled: true
-                            opacity: hovered ? 0.8:1         
+                            // opacity: hovered ? 0.8:1         
                             model: ListModel {
                                 id: noteList                        
                                 ListElement { text: "C" }
@@ -1001,8 +1097,33 @@ MuseScore {
                                 ListElement { text: "A" }
                                 ListElement { text: "B" }                    
                             }
-                           palette.buttonText: "white"
-                           background: Rectangle {
+                            contentItem: Text {
+                                text: noteBox.displayText
+                                anchors.verticalCenter: parent.verticalCenter
+                                color: "white"
+                                verticalAlignment: Text.AlignVCenter
+                                leftPadding: 5
+                                rightPadding: 10 + noteBox.indicator.width + noteBox.spacing
+                            }
+
+                            indicator: Canvas {
+                                x: noteBox.width - width - noteBox.rightPadding
+                                y: noteBox.topPadding + (noteBox.availableHeight - height) / 2
+                                width: 8
+                                height: 5
+                                contextType: "2d"
+
+                                onPaint: {
+                                    context.reset();
+                                    context.moveTo(0, 0);
+                                    context.lineTo(width, 0);
+                                    context.lineTo(width / 2, height);
+                                    context.closePath();
+                                    context.fillStyle = "white";
+                                    context.fill();
+                                }
+                            }
+                            background: Rectangle {
                                 color:"#242427"
                                 //implicitWidth: parent.width
                                // implicitHeight: parent.height
@@ -1023,10 +1144,9 @@ MuseScore {
                     
                         ComboBox {               
                             id: accidentalBox
-                            width: 40
+                            width: (mscoreMajorVersion >= 4)?40:undefined
                             height: parent.height
                             currentIndex: 1   
-                            palette.buttonText: "white"
                             font.pointSize: 11 
                             font.family: "segoe UI"
                             hoverEnabled: true
@@ -1036,6 +1156,31 @@ MuseScore {
                                 ListElement { text: "♮" }
                                 ListElement { text: "♯" }
                                                 
+                            }
+                            contentItem: Text {
+                                text: accidentalBox.displayText
+                                anchors.verticalCenter: parent.verticalCenter
+                                color: "white"
+                                verticalAlignment: Text.AlignVCenter
+                                leftPadding: 5
+                                rightPadding: 15 + accidentalBox.indicator.width + accidentalBox.spacing
+                            }
+                            indicator: Canvas {
+                                x: accidentalBox.width - width - accidentalBox.rightPadding
+                                y: accidentalBox.topPadding + (accidentalBox.availableHeight - height) / 2
+                                width: 8
+                                height: 5
+                                contextType: "2d"
+
+                                onPaint: {
+                                    context.reset();
+                                    context.moveTo(0, 0);
+                                    context.lineTo(width, 0);
+                                    context.lineTo(width / 2, height);
+                                    context.closePath();
+                                    context.fillStyle = "white";
+                                    context.fill();
+                                }
                             }
                             background: Rectangle {
                                 color:"#242427"
@@ -1049,7 +1194,7 @@ MuseScore {
 
                         SpinBox {
                             id: octaveBox
-                            width:50
+                            width: (mscoreMajorVersion >= 4)?50:undefined
                             
                             from: 0
                             value: 4
@@ -1080,6 +1225,7 @@ MuseScore {
                             id: diatonic 
                             text: "Diatonic" 
                             font.family: "segoe UI" 
+                            color: "white"
                         }
                                 
                         Switch { 
@@ -1111,6 +1257,7 @@ MuseScore {
                         Label{ 
                             text: "Chromatic" 
                             font.family: "segoe UI"
+                            color: "white"
                         }     
                     }       
                 }         
@@ -1130,7 +1277,14 @@ MuseScore {
                     hoverEnabled: true
                     highlighted: clicked
                     text: qsTr("Apply")  
-                    palette.buttonText: "white"
+                    contentItem: Text {
+                        text: btnApply.text
+                        font: btnApply.font
+                        color: "white"
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        elide: Text.ElideRight
+                    }                    
                     background: Rectangle {
                         implicitWidth: 100
                         implicitHeight: 25
@@ -1163,7 +1317,14 @@ MuseScore {
                     hoverEnabled: true
                     highlighted: clicked
                     text: qsTr("Close")
-                    palette.buttonText: "white"
+                    contentItem: Text {
+                        text: btnClose.text
+                        font: btnClose.font
+                        color: "white"
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        elide: Text.ElideRight
+                    }                    
                     background: Rectangle {
                         implicitWidth: 100
                         implicitHeight: 25
@@ -1174,7 +1335,7 @@ MuseScore {
                      }                  
                     onClicked: {
                         //window.close();
-                        quit()
+                        mainWindow.parent.Window.window.close() 
                     }
                 }        
             }
@@ -1190,7 +1351,7 @@ MuseScore {
                 sequence: "Esc"//StandardKey.Quit//"Escape"
                 //enabled: true
                 //context: Qt.WindowShortcut//Qt.ApplicationShortcut
-                onActivated: {quit()}
+                onActivated: {mainWindow.parent.Window.window.close()}
                 
             } 
             
