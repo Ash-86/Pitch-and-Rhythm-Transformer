@@ -709,117 +709,22 @@ MuseScore {
                 anchors.topMargin:20
                 ButtonGroup {id: options}
 
-                RadioButton {
+                MyRadioButton {
                     //color: sysActivePalette.text
                     id: rotatePitchesBox
                     ButtonGroup.group: options
                     text: "Rotate Pitches" 
-                    
-                    font.family: "segoe UI"
-                    font.pointSize: 10
-                    hoverEnabled: true
-                    contentItem: Text {
-                        text: rotatePitchesBox.text
-                        font: rotatePitchesBox.font
-                        opacity: rotatePitchesBox.hovered ? 0.8:1
-                        color: "white"
-                        verticalAlignment: Text.AlignVCenter
-                        leftPadding: rotatePitchesBox.indicator.width + rotatePitchesBox.spacing
-                        }
-                    indicator: Rectangle {
-                        implicitWidth: 18
-                        implicitHeight: 18
-                        //x: rotatePitchesBox.leftPadding
-                        anchors.verticalCenter: parent.verticalCenter
-                        radius: 9
-                        color: "#242427"
-                        border.color: "#c0c0c0"
-
-                        Rectangle {
-                            width: 10
-                            height: 10
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            anchors.verticalCenter: parent.verticalCenter
-                            
-                            radius: 5
-                            color: rotatePitchesBox.checked ? "#2093fe" : "#242427"
-                            //visible: rotatePitchesBox.checked
-                        }                       
-                    }
                 }
-                RadioButton {
+                MyRadioButton {
                     //color: sysActivePalette
                     id: rotateRhythmBox
                     ButtonGroup.group: options
                     text: qsTr("Rotate Rhythm")
-                    font.family: "segoe UI"
-                    font.pointSize: 10
-                    //icon.color: "grey" 
-                    hoverEnabled: true
-                    contentItem: Text {
-                        text: rotateRhythmBox.text
-                        font: rotateRhythmBox.font
-                        opacity: rotateRhythmBox.hovered ? 0.8:1
-                        color: "white"
-                        verticalAlignment: Text.AlignVCenter
-                        leftPadding: rotateRhythmBox.indicator.width + rotateRhythmBox.spacing
-                        }
-                    indicator: Rectangle {
-                        implicitWidth: 18
-                        implicitHeight: 18
-                        //x: rotatePitchesBox.leftPadding
-                        anchors.verticalCenter: parent.verticalCenter
-                        radius: 9
-                        color: "#242427"
-                        border.color: "#c0c0c0"
-
-                        Rectangle {
-                            width: 10
-                            height: 10
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            anchors.verticalCenter: parent.verticalCenter
-                            
-                            radius: 5
-                            color: rotateRhythmBox.checked ? "#2093fe" : "#242427"
-                            //visible: rotatePitchesBox.checked
-                        }                       
-                    }
                 }
-                RadioButton {
+                MyRadioButton {
                     id: rotateBothBox
                     ButtonGroup.group: options
                     text: qsTr("Rotate Pitches and Rhythm")
-                    font.family: "segoe UI"
-                    font.pointSize: 10
-                    hoverEnabled: true
-                    contentItem: Text {
-                        text: rotateBothBox.text
-                        font: rotateBothBox.font
-                        opacity: rotateBothBox.hovered ? 0.8:1
-                        color: "white"
-                        verticalAlignment: Text.AlignVCenter
-                        leftPadding: rotateBothBox.indicator.width + rotateBothBox.spacing
-                        }
-                    indicator: Rectangle {
-                        implicitWidth: 18
-                        implicitHeight: 18
-                        //x: rotatePitchesBox.leftPadding
-                        anchors.verticalCenter: parent.verticalCenter
-                        radius: 9
-                        color: "#242427"
-                        border.color: "#c0c0c0"
-
-                        Rectangle {
-                            width: 10
-                            height: 10
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            anchors.verticalCenter: parent.verticalCenter
-                            
-                            radius: 5
-                            color: rotateBothBox.checked ? "#2093fe" : "#242427"
-                            //visible: rotatePitchesBox.checked
-                        }                       
-                    }
                 }
             
                 Row{
@@ -865,113 +770,20 @@ MuseScore {
                 anchors.top:bar.bottom 
                 anchors.topMargin:20  
 
-                RadioButton {
+                MyRadioButton {
                     id: reversePitchesBox
                     ButtonGroup.group: options
                     text: "Reverse Pitches" // 8
-                    font.family: "segoe UI"
-                    font.pointSize: 10
-                    hoverEnabled: true
-                    contentItem: Text {
-                        text: reversePitchesBox.text
-                        font: reversePitchesBox.font
-                        opacity: reversePitchesBox.hovered ? 0.8:1
-                        color: "white"
-                        verticalAlignment: Text.AlignVCenter
-                        leftPadding: reversePitchesBox.indicator.width + reversePitchesBox.spacing
-                        }
-                    indicator: Rectangle {
-                        implicitWidth: 18
-                        implicitHeight: 18
-                        //x: rotatePitchesBox.leftPadding
-                        anchors.verticalCenter: parent.verticalCenter
-                        radius: 9
-                        color: "#242427"
-                        border.color: "#c0c0c0"
-
-                        Rectangle {
-                            width: 10
-                            height: 10
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            anchors.verticalCenter: parent.verticalCenter
-                            
-                            radius: 5
-                            color: reversePitchesBox.checked ? "#2093fe" : "#242427"
-                            //visible: rotatePitchesBox.checked
-                        }                       
-                    }
                 }
-                RadioButton {
+                MyRadioButton {
                     id: reverseRhythmBox
                     ButtonGroup.group: options
                     text: qsTr("Reverse Rhythm")
-                    font.family: "segoe UI"
-                    font.pointSize: 10 
-                    hoverEnabled: true
-                    contentItem: Text {
-                        text: reverseRhythmBox.text
-                        font: reverseRhythmBox.font
-                        opacity: reverseRhythmBox.hovered ? 0.8:1  
-                        color: "white"
-                        verticalAlignment: Text.AlignVCenter
-                        leftPadding: reverseRhythmBox.indicator.width + reverseRhythmBox.spacing
-                        }
-                    indicator: Rectangle {
-                        implicitWidth: 18
-                        implicitHeight: 18
-                        //x: rotatePitchesBox.leftPadding
-                        anchors.verticalCenter: parent.verticalCenter
-                        radius: 9
-                        color: "#242427"
-                        border.color: "#c0c0c0"
-
-                        Rectangle {
-                            width: 10
-                            height: 10
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            anchors.verticalCenter: parent.verticalCenter
-                            
-                            radius: 5
-                            color: reverseRhythmBox.checked ? "#2093fe" : "#242427"
-                            //visible: rotatePitchesBox.checked
-                        }                       
-                    }
                 }
-                RadioButton {
+                MyRadioButton {
                     id: reverseBothBox
                     ButtonGroup.group: options           
                     text: qsTr("Reverse Pitches and Rhythm")
-                    font.family: "segoe UI"
-                    font.pointSize: 10   
-                    hoverEnabled: true
-                    contentItem: Text {
-                        text: reverseBothBox.text
-                        font: reverseBothBox.font
-                        opacity: reverseBothBox.hovered ? 0.8:1 
-                        color: "white"
-                        verticalAlignment: Text.AlignVCenter
-                        leftPadding: reverseBothBox.indicator.width + reverseBothBox.spacing
-                        }
-                    indicator: Rectangle {
-                        implicitWidth: 18
-                        implicitHeight: 18
-                        //x: rotatePitchesBox.leftPadding
-                        anchors.verticalCenter: parent.verticalCenter
-                        radius: 9
-                        color: "#242427"
-                        border.color: "#c0c0c0"
-
-                        Rectangle {
-                            width: 10
-                            height: 10
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            anchors.verticalCenter: parent.verticalCenter
-                            
-                            radius: 5
-                            color: reverseBothBox.checked ? "#2093fe" : "#242427"
-                            //visible: rotatePitchesBox.checked
-                        }                       
-                    }
                 }
             
             }///end reverse items
@@ -996,77 +808,15 @@ MuseScore {
                         font.pointSize: 10  
                         color: "white"
                     }     
-                    RadioButton {
+                    MyRadioButton {
                         id: invertByOutermostPitchesBox
                         ButtonGroup.group: options
-                        text: "Outermost Pitches" // 8
-                        font.family: "segoe UI"
-                        font.pointSize: 10 
-                        hoverEnabled: true  
-                        contentItem: Text {
-                            text: invertByOutermostPitchesBox.text
-                            font: invertByOutermostPitchesBox.font
-                            opacity: invertByOutermostPitchesBox.hovered ? 0.8:1    
-                            color: "white"
-                            verticalAlignment: Text.AlignVCenter
-                            leftPadding: invertByOutermostPitchesBox.indicator.width + invertByOutermostPitchesBox.spacing
-                            }
-                        indicator: Rectangle {
-                            implicitWidth: 18
-                            implicitHeight: 18
-                            //x: rotatePitchesBox.leftPadding
-                            anchors.verticalCenter: parent.verticalCenter
-                            radius: 9
-                        color: "#242427"
-                        border.color: "#c0c0c0"
-
-                            Rectangle {
-                                width: 10
-                                height: 10
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                anchors.verticalCenter: parent.verticalCenter
-                                
-                                radius: 5
-                            color: invertByOutermostPitchesBox.checked ? "#2093fe" : "#242427"
-                            //visible: rotatePitchesBox.checked
-                            }                       
-                        }                    
+                        text: "Outermost Pitches" // 8                                 
                     }
-                    RadioButton {
+                    MyRadioButton {
                         id: invertByPitch
                         ButtonGroup.group: options
-                        text: qsTr("Specific Pitch:")
-                        font.family: "segoe UI"
-                        font.pointSize: 10 
-                        hoverEnabled: true
-                        contentItem: Text {
-                            text: invertByPitch.text
-                            font: invertByPitch.font
-                            opacity: invertByPitch.hovered ? 0.8:1   
-                            color: "white"
-                            verticalAlignment: Text.AlignVCenter
-                            leftPadding: invertByPitch.indicator.width + invertByPitch.spacing
-                            }
-                        indicator: Rectangle {
-                            implicitWidth: 18
-                            implicitHeight: 18
-                            //x: rotatePitchesBox.leftPadding
-                            anchors.verticalCenter: parent.verticalCenter
-                            radius: 9
-                        color: "#242427"
-                        border.color: "#c0c0c0"
-
-                            Rectangle {
-                                width: 10
-                                height: 10
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                anchors.verticalCenter: parent.verticalCenter
-                                
-                                radius: 5
-                            color: invertByPitch.checked ? "#2093fe" : "#242427"
-                            //visible: rotatePitchesBox.checked
-                            }                       
-                        }
+                        text: qsTr("Specific Pitch:")                        
                     }
                     Row{                
                         enabled: invertByPitch.checked
@@ -1078,15 +828,9 @@ MuseScore {
                          
                         spacing: 5              
                     
-                        ComboBox {               
-                            id: noteBox
-                            width: (mscoreMajorVersion >= 4)?40:undefined
-                            height: parent.height
-                            currentIndex: 0    
-                            font.pointSize: 10 
-                            font.family: "segoe UI" 
-                            hoverEnabled: true
-                            // opacity: hovered ? 0.8:1         
+                        MyComboBox {               
+                            id: noteBox                            
+                            currentIndex: 0                                  
                             model: ListModel {
                                 id: noteList                        
                                 ListElement { text: "C" }
@@ -1096,100 +840,17 @@ MuseScore {
                                 ListElement { text: "G" }
                                 ListElement { text: "A" }
                                 ListElement { text: "B" }                    
-                            }
-                            contentItem: Text {
-                                text: noteBox.displayText
-                                anchors.verticalCenter: parent.verticalCenter
-                                color: "white"
-                                verticalAlignment: Text.AlignVCenter
-                                leftPadding: 5
-                                rightPadding: 10 + noteBox.indicator.width + noteBox.spacing
-                            }
-
-                            indicator: Canvas {
-                                x: noteBox.width - width - noteBox.rightPadding
-                                y: noteBox.topPadding + (noteBox.availableHeight - height) / 2
-                                width: 8
-                                height: 5
-                                contextType: "2d"
-
-                                onPaint: {
-                                    context.reset();
-                                    context.moveTo(0, 0);
-                                    context.lineTo(width, 0);
-                                    context.lineTo(width / 2, height);
-                                    context.closePath();
-                                    context.fillStyle = "white";
-                                    context.fill();
-                                }
-                            }
-                            background: Rectangle {
-                                color:"#242427"
-                                //implicitWidth: parent.width
-                               // implicitHeight: parent.height
-                                ////border.width: parent && parent.activeFocus ? 2 : 1
-                                //border.color: parent && parent.activeFocus ? accidental.palette.highlight : accidental.palette.button
-                                radius: 4
-                            }
-                            // background: Rectangle {
-                            //     implicitWidth: parent.width
-                            //     implicitHeight: parent.height
-
-                            //     color: notesBox.hovered ? (notesBox.pressed ? "#2b3744" : "#424244") : "#2d2d30" //(btnClose.down ? "#717171" : "#565656") : "#646464"
-                            //     // border.color: "#888"
-                            //     //radius: 4
-        
-                            // }    
+                            }                              
                         }
                     
-                        ComboBox {               
-                            id: accidentalBox
-                            width: (mscoreMajorVersion >= 4)?40:undefined
-                            height: parent.height
-                            currentIndex: 1   
-                            font.pointSize: 11 
-                            font.family: "segoe UI"
-                            hoverEnabled: true
-                            opacity: hovered ? 0.8:1       
+                        MyComboBox {               
+                            id: accidentalBox                            
+                            currentIndex: 1                                    
                             model: ListModel {                    
                                 ListElement { text: "♭" }
                                 ListElement { text: "♮" }
-                                ListElement { text: "♯" }
-                                                
-                            }
-                            contentItem: Text {
-                                text: accidentalBox.displayText
-                                anchors.verticalCenter: parent.verticalCenter
-                                color: "white"
-                                verticalAlignment: Text.AlignVCenter
-                                leftPadding: 5
-                                rightPadding: 15 + accidentalBox.indicator.width + accidentalBox.spacing
-                            }
-                            indicator: Canvas {
-                                x: accidentalBox.width - width - accidentalBox.rightPadding
-                                y: accidentalBox.topPadding + (accidentalBox.availableHeight - height) / 2
-                                width: 8
-                                height: 5
-                                contextType: "2d"
-
-                                onPaint: {
-                                    context.reset();
-                                    context.moveTo(0, 0);
-                                    context.lineTo(width, 0);
-                                    context.lineTo(width / 2, height);
-                                    context.closePath();
-                                    context.fillStyle = "white";
-                                    context.fill();
-                                }
-                            }
-                            background: Rectangle {
-                                color:"#242427"
-                                //implicitWidth: parent.width
-                               // implicitHeight: parent.height
-                                ////border.width: parent && parent.activeFocus ? 2 : 1
-                                //border.color: parent && parent.activeFocus ? accidental.palette.highlight : accidental.palette.button
-                                radius: 4
-                            }
+                                ListElement { text: "♯" }                                                
+                            }                            
                         }
 
                         SpinBox {
