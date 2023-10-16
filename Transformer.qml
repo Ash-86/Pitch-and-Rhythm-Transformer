@@ -588,7 +588,8 @@ MuseScore {
         //minimumWidth :300
         //minimumHeight : 200
         //visible : true
-        color : "#363638"//"#2d2d30" //sysActivePalette//"#333"
+        color : (mscoreMajorVersion >= 4)?ui.theme.backgroundSecondaryColor:"#363638"//"#2d2d30" //sysActivePalette//"#333"
+        
        
         MouseArea {
             id: mouseArea
@@ -606,17 +607,17 @@ MuseScore {
                 
                 height: parent.height/8
                 currentIndex: 0
-                font.family: "segoe UI"
+                font.family: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
                 font.pointSize: 10
                 TabButton {
                     id: rotateTab 
-                    text: "Rotate..." 
+                    text: "Rotate" 
                     height: parent.height
                     contentItem: Text {
                         text: rotateTab.text
-                        font: rotateTab.font
-                        color: "white"
-                        opacity: rotateTab.checked ? 1 : 0.8
+                        font: bar.font
+                        color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white"
+                        //opacity: rotateTab.checked ? 1 : 0.8
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                         elide: Text.ElideRight
@@ -625,7 +626,9 @@ MuseScore {
                         implicitWidth: parent.width/3
                         implicitHeight: parent.height
 
-                        color: rotateTab.hovered ? (rotateTab.checked ? "#2b3744" : "#424244") : "#2d2d30" //"#717171" //(btnClose.down ? "#717171" : "#565656") : "#646464"
+                        //color: rotateTab.hovered ? (rotateTab.checked ? "#2b3744" : "#424244") : "#2d2d30" //"#717171" //(btnClose.down ? "#717171" : "#565656") : "#646464"
+                        color: (mscoreMajorVersion >= 4)? (rotateTab.hovered? ui.theme.buttonColor : ui.theme.backgroundPrimaryColor) : "#2d2d30"
+                         opacity: rotateTab.hovered ? (rotateTab.down ? 1:0.5) : 0.75
                         // border.color: "#888"
                         //radius: 4
         
@@ -633,14 +636,14 @@ MuseScore {
                 }
                 TabButton {
                     id: reverseTab
-                    text: "Retrograde..." 
+                    text: "Retrograde" 
                   
                     height: parent.height 
                     contentItem: Text {
                         text: reverseTab.text
-                        font: reverseTab.font
-                        color: "white"
-                        opacity: reverseTab.checked ? 1 : 0.8
+                        font: bar.font
+                        color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white"
+                        //opacity: reverseTab.checked ? 1 : 0.8
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                         elide: Text.ElideRight
@@ -649,7 +652,9 @@ MuseScore {
                         implicitWidth: parent.width/3
                         implicitHeight: parent.height
 
-                        color: reverseTab.hovered ? (reverseTab.checked ? "#2b3744" : "#424244") : "#2d2d30" //(btnClose.down ? "#717171" : "#565656") : "#646464"
+                        //color: reverseTab.hovered ? (reverseTab.checked ? "#2b3744" : "#424244") : "#2d2d30" //(btnClose.down ? "#717171" : "#565656") : "#646464"
+                        color: (mscoreMajorVersion >= 4)? (reverseTab.hovered? ui.theme.buttonColor : ui.theme.backgroundPrimaryColor) : "#2d2d30"
+                        opacity: reverseTab.hovered ? (reverseTab.down ? 1:0.5) : 0.75
                         // border.color: "#888"
                         //radius: 4
         
@@ -657,13 +662,13 @@ MuseScore {
                 }
                 TabButton {
                     id: invertTab 
-                    text: "Invert..."  
+                    text: "Invert"  
                     height: parent.height
                     contentItem: Text {
                         text: invertTab.text
-                        font: invertTab.font
-                        color: "white"
-                        opacity: invertTab.checked ? 1 : 0.8
+                        font: bar.font
+                        color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white"
+                        //opacity: invertTab.checked ? 1 : 0.8
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                         elide: Text.ElideRight
@@ -671,8 +676,10 @@ MuseScore {
                     background: Rectangle {
                         implicitWidth: parent.width/3
                         implicitHeight: parent.height
-
-                        color: invertTab.hovered ? (invertTab.checked ? "#2b3744" : "#424244") : "#2d2d30" //(btnClose.down ? "#717171" : "#565656") : "#646464"
+                        
+                        // color: invertTab.hovered ? (invertTab.checked ? "#2b3744" : "#424244") : "#2d2d30" //(btnClose.down ? "#717171" : "#565656") : "#646464"
+                        color: (mscoreMajorVersion >= 4)? (invertTab.hovered? ui.theme.buttonColor : ui.theme.backgroundPrimaryColor) : "#2d2d30"
+                        opacity: invertTab.hovered ? (invertTab.down ? 1:0.5) : 0.75
                         // border.color: "#888"
                         //radius: 4
         
@@ -685,7 +692,7 @@ MuseScore {
                 anchors.top: bar.bottom;
                 width: bar.currentItem.width;
                 height: 2;
-                color: "#2093fe"
+                color: (mscoreMajorVersion >= 4)? ui.theme.accentColor : "#2093fe"
                 NumberAnimation on x {
                     duration: 100;
                     to: decorator.targetX
@@ -734,10 +741,10 @@ MuseScore {
                     Label {
                         text: "Select number of steps by which to rotate: "
                         //color: sysActivePalette.text//"#333"   
-                        font.family: "segoe UI"
+                        font.family: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
                         font.pointSize: 10        
                         id: stepBoxText
-                        color: "white"
+                        color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor :  "white"
                     }
             
                     SpinBox {
@@ -746,13 +753,19 @@ MuseScore {
                         // width: 50 
                         width: (mscoreMajorVersion >= 4)?50:undefined
                         font.pointSize: 10                
-                        font.family: "segoe UI"
+                        font.family: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
                         hoverEnabled: true
                         opacity: hovered ? 0.8:1
                         from: -100
                         value: 0
                         to: 99
                         stepSize: 1
+
+                        // background: Rectangle {
+                        //     color:(mscoreMajorVersion >= 4)? ui.theme.textFieldColor : "#242427"
+                        //     border.color: (mscoreMajorVersion >= 4)? ui.theme.strokeColor : "grey"
+                        //     radius: 4                           
+                        // }                         
 
                         textFromValue: function (value) {
                             return Number((value < 0) ? value : value + 1); //  bypass 0: -2, -1, 1, 2
@@ -804,9 +817,9 @@ MuseScore {
                     Label{
                         x: 20
                         text: "Invert Using:"
-                        font.family: "segoe UI"
+                        font.family: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
                         font.pointSize: 10  
-                        color: "white"
+                        color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white"
                     }     
                     MyRadioButton {
                         id: invertByOutermostPitchesBox
@@ -869,11 +882,13 @@ MuseScore {
                             
                             ToolTip.timeout: 1000   
                             font.pointSize: 10 
-                            font.family: "segoe UI"
+                            font.family: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
                            
                             // background: Rectangle {
-                            //     color:"#242427"                            
-                            // }        
+                            //     color:(mscoreMajorVersion >= 4)? ui.theme.textFieldColor : "#242427"
+                            //     border.color: (mscoreMajorVersion >= 4)? ui.theme.strokeColor : "grey"
+                            //     radius: 4                           
+                            // }                                 
                         }  
                     }//row   
                     Row {  
@@ -885,8 +900,8 @@ MuseScore {
                         Label{ 
                             id: diatonic 
                             text: "Diatonic" 
-                            font.family: "segoe UI" 
-                            color: "white"
+                            font.family: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
+                            color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white"
                         }
                                 
                         Switch { 
@@ -901,24 +916,24 @@ MuseScore {
                                 x: invertType.width - width - invertType.rightPadding
                                 y: parent.height / 2 - height / 2
                                 radius: 13
-                                color: invertType.checked ? "#242427":"#242427"//"#565656" : "#565656"
-                               // border.color: "black"
+                                color: (mscoreMajorVersion >= 4)? ui.theme.textFieldColor :"#242427"//"#565656" : "#565656"
+                                border.color: (mscoreMajorVersion >= 4)? ui.theme.strokeColor : "#2d2d30"
 
                                 Rectangle {
                                     x: invertType.checked ? parent.width - width : 0
                                     width: 20
                                     height: 20
                                     radius: 13
-                                    border.color: "#2d2d30"
-                                    color: "#277eb9"//"#40acff"//"#265f97"
+                                    border.color: (mscoreMajorVersion >= 4)? ui.theme.strokeColor:"#2d2d30"
+                                    color: (mscoreMajorVersion >= 4)? ui.theme.accentColor : "#277eb9"//"#40acff"//"#265f97"
                                 }
                             }
                         }
                         
                         Label{ 
                             text: "Chromatic" 
-                            font.family: "segoe UI"
-                            color: "white"
+                            font.family: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
+                            color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white"
                         }     
                     }       
                 }         
@@ -940,8 +955,8 @@ MuseScore {
                     text: qsTr("Apply")  
                     contentItem: Text {
                         text: btnApply.text
-                        font: btnApply.font
-                        color: "white"
+                        font: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
+                        color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white"
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                         elide: Text.ElideRight
@@ -949,7 +964,9 @@ MuseScore {
                     background: Rectangle {
                         implicitWidth: 100
                         implicitHeight: 25
-                        color: btnApply.hovered ?  (btnApply.down ? "#2093fe" : "#265f97") : "#277eb9"
+                        // color: btnApply.hovered ?  (btnApply.down ? "#2093fe" : "#265f97") : "#277eb9"
+                        color: (mscoreMajorVersion >= 4)? ui.theme.accentColor : "#277eb9"
+                        opacity: btnApply.hovered ?  (btnApply.down ? 1:0.5) : 0.75
                         // border.color: "#888"
                         radius: 4
         
@@ -980,8 +997,8 @@ MuseScore {
                     text: qsTr("Close")
                     contentItem: Text {
                         text: btnClose.text
-                        font: btnClose.font
-                        color: "white"
+                        font: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
+                        color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white"
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                         elide: Text.ElideRight
@@ -989,7 +1006,8 @@ MuseScore {
                     background: Rectangle {
                         implicitWidth: 100
                         implicitHeight: 25
-                        color: btnClose.hovered ?  (btnClose.down ? "#717171" : "#565656") : "#646464"
+                        color: (mscoreMajorVersion >= 4)? ui.theme.buttonColor : "#646464"
+                        opacity: btnClose.hovered ?  (btnClose.down ? 1 : 0.5) : 0.75
                         // border.color: "#888"
                         radius: 4
         

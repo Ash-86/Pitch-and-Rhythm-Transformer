@@ -7,14 +7,14 @@ ComboBox {
     height: parent.height
     currentIndex: 0    
     font.pointSize: 10 
-    font.family: "segoe UI" 
+    font.family: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
     hoverEnabled: true
     // opacity: hovered ? 0.8:1         
   
     contentItem: Text {
         text: ctrl.displayText
         anchors.verticalCenter: parent.verticalCenter
-        color: "white"
+        color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white"
         verticalAlignment: Text.AlignVCenter
         leftPadding: 5
         rightPadding: 10 + ctrl.indicator.width + ctrl.spacing
@@ -33,16 +33,16 @@ ComboBox {
             context.lineTo(width, 0);
             context.lineTo(width / 2, height);
             context.closePath();
-            context.fillStyle = "white";
+            context.fillStyle = (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white";
             context.fill();
         }
     }
     background: Rectangle {
-        color:"#242427"
+        color:(mscoreMajorVersion >= 4)? ui.theme.textFieldColor : "#242427"
         //implicitWidth: parent.width
         // implicitHeight: parent.height
         ////border.width: parent && parent.activeFocus ? 2 : 1
-        //border.color: parent && parent.activeFocus ? accidental.palette.highlight : accidental.palette.button
+        border.color: (mscoreMajorVersion >= 4)? ui.theme.strokeColor : "grey"
         radius: 4
     }
     // background: Rectangle {

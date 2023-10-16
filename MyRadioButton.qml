@@ -6,15 +6,16 @@ import QtQuick.Controls 2.2
     id: btn                
     
     
-    font.family: "segoe UI"
+    font.family: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI"
     font.pointSize: 10
+    
     hoverEnabled: true
     
     contentItem: Text {
         text: btn.text
         font: btn.font
         opacity: btn.hovered ? 0.8:1
-        color: "white"
+        color:  (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white"
         verticalAlignment: Text.AlignVCenter
         leftPadding:btn.indicator.width + btn.spacing
     }
@@ -25,7 +26,7 @@ import QtQuick.Controls 2.2
         //x: rotatePitchesBox.leftPadding
         anchors.verticalCenter: parent.verticalCenter
         radius: 9
-        color: "#242427"
+        color: (mscoreMajorVersion >= 4)? ui.theme.textFieldColor : "#242427"
         border.color: "#c0c0c0"
 
         Rectangle {
@@ -35,8 +36,8 @@ import QtQuick.Controls 2.2
             anchors.verticalCenter: parent.verticalCenter
             
             radius: 5
-            color: btn.checked ? "#2093fe" : "#242427"
-            //visible: rotatePitchesBox.checked
+            color: (mscoreMajorVersion >= 4)? ui.theme.accentColor : "#2093fe"             
+            visible: btn.checked
         }                       
     }
 }
