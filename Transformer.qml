@@ -138,6 +138,30 @@ MuseScore {
             return     
         }   
         /////////////////////////////////////////////////////////////
+        var scales={                       
+             major: {   
+                  pitch: [-12,-10,-8,-7,-5,-3,-1],
+                  tpc1: [14,16,18,13,15,17,19] ,
+                  tpc2: null          
+            },
+            melodic: {   
+                  pitch: [-12,-10,-9,-7,-5,-3,-1],
+                  tpc1: [14,16,11,13,15,17,19],
+                  tpc2: null    
+            },
+            harmonic: {
+                pitch: [-12,-10,-9,-7,-5,-4,-1],
+                tpc1: [14,16,11,13,15,10,19],
+                tpc2: null    
+            },
+            "Harmonic Major": { 
+                pitch: [1,2,3,3,4,],
+                tpc1: [14,16,11,13,],
+                tpc2: null
+           }
+            
+        }      
+        //////////////////////////////////////////////////////////////////////////// 
         cursor.rewind(1) 
        
         curScore.startCmd()
@@ -188,6 +212,22 @@ MuseScore {
         }
         if (invertByOutermostPitchesBox.checked){
             invertUsingOutermostPitches(invertType.position)
+        }
+        if (mapTab.checked && mainMenu.modeNumber[1]!=null){
+            var notename=noteBoxMap.currentText
+            var noteacc=accidentalBoxMap.currentText
+            var pivot= getPivot(notename,noteacc,-1)
+    
+            var scale=scales[mainMenu.modeNumber[0]]
+            var modeDistance= scale.pitch[mainMenu.modeNumber[1]] +12 //+12 because the modes pitches above start from -12
+
+            var transposedScale=transpose(scale,pivot.pitch-modeDistance ) // ,curScore.keysig)
+            console.log("transpsed scale:", transposedScale.pitch, transposedScale.tpc1 ) 
+            var Map= getScaleMap(transposedScale) 
+            performMapping(Map) 
+             //console.log("Map: ",Map.pitch, Map.tpc1)
+            // var oldMap= getDiatonicMap()
+            // console.log("old diatonicMap", oldMap.pitch,   oldMap.tpc1 )
         }
 
         curScore.selection.selectRange(startTick, endTick, startStaff, endStaff);
@@ -303,7 +343,7 @@ MuseScore {
                 
                 
         function getTrans(){ ///get instrument tranposition value
-             cursor.rewind(startTick)
+             cursor.rewindToTick(startTick)
              while (cursor.segment && cursor.tick < endTick){
                var el=cursor.element
                if (el.type==Element.CHORD){
@@ -320,7 +360,7 @@ MuseScore {
                    var TV=[0,0,trans] // Transposition Vector [pitch, tpc1, tpc2]
             }
              else{ 
-                   var TV=[-trans,-trans,0]
+                   var TV=[-(trans*7)%12,-trans,0]
             }
 
             const notes={
@@ -564,6 +604,83 @@ MuseScore {
                 //var noteDeg=Map.pitch.indexOf(el.notes[n].pitch + Math.pow(-1, acc))  ///math.pow maps sharp to -1, flat to 1
             }
         }    
+
+        //////////////////// Mapping Functions ///////////////////////////
+        function transpose(scale, interval){
+
+            //var interval=(12 - 5*keySig)%12
+            scale.pitch=scale.pitch.map(function(x){return x+interval})
+            scale.tpc1=scale.tpc1.map(function(x){return x+interval*7})
+                        
+            while(scale.tpc1.some(function(x){return x>26})){
+                scale.tpc1=scale.tpc1.map(function(x){return x-12})
+            }
+            while(scale.tpc1.some(function(x){return x<6})){
+                scale.tpc1=scale.tpc1.map(function(x){return x+12})
+            }
+            return scale
+        }//func
+        
+       function getScaleMap(scale){            
+            var trans=getTrans() 
+            scale.tpc2=scale.tpc1.map(function(x) { return x+trans})   
+            
+            var pitchMap=[]
+            var tpc1Map=[]
+            var tpc2Map=[]
+                                
+            for (var j=0; j<11;j++){
+                pitchMap=pitchMap.concat(scale.pitch)
+                tpc1Map=tpc1Map.concat(scale.tpc1)
+                tpc2Map=tpc2Map.concat(scale.tpc2)
+                scale.pitch=scale.pitch.map(function(x){return x+12})                                                                                                                                        
+            }
+                                
+            const Map={pitch:pitchMap, tpc1:tpc1Map, tpc2:tpc2Map}
+            return Map 
+        }    
+        
+        function performMapping(Map){                    
+            while (cursor.segment != null && cursor.tick < endTick) {
+                var el=cursor.element              
+                if (el.type == Element.CHORD) {                     
+                    for ( var n=0; n<el.notes.length; n++){
+                        var PosD=0
+                        var NegD=0
+                        var offset=0
+                        while (!Map.pitch.some(function(x){return x==el.notes[n].pitch+PosD})){
+                            PosD++
+                        }
+                        while (!Map.pitch.some(function(x){return x==el.notes[n].pitch+NegD})){
+                            NegD--
+                        }
+                        if (PosD+NegD>0){
+                            offset=NegD
+                        }
+                        if (PosD+NegD<0){ 
+                            offset=PosD
+                        }                            
+                        if (PosD!=0 && PosD==-NegD){ //check tpc
+                            var noteIdx = Map.pitch.indexOf(el.notes[n].pitch+NegD)
+                            
+                            if (el.notes[n].tpc1-Map.tpc1[noteIdx] == 7){
+                                offset=NegD
+                            }
+                            else{
+                                offset=PosD
+                            }                                
+                        }
+                        //console.log(el.notes[n].pitch,offset, Map.pitch.indexOf(el.notes[n].pitch+offset))
+                        var noteIdx = Map.pitch.indexOf(el.notes[n].pitch+offset)                            
+                        el.notes[n].pitch = Map.pitch[noteIdx]
+                        el.notes[n].tpc1 = Map.tpc1[noteIdx]
+                        el.notes[n].tpc2=Map.tpc2[noteIdx]
+                    }                    
+                }                       
+            cursor.next()              
+            }                
+        }///end performMapping
+        //////////////////////////// end Mapping Functions ////////////////////////////
             
     }/// end transfor  
 
@@ -684,11 +801,34 @@ MuseScore {
                         //radius: 4
         
                      }                            
+                }              
+                TabButton {
+                    id: mapTab 
+                    text: "Map"  
+                    height: parent.height
+                    contentItem: Text {
+                        text:mapTab.text
+                        font: mapTab.font
+                        color: "white"
+                        opacity:mapTab.checked ? 1 : 0.8
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        elide: Text.ElideRight
+                    }
+                    background: Rectangle {
+                        implicitWidth: parent.width/3
+                        implicitHeight: parent.height
+
+                        color: mapTab.hovered ? (mapTab.checked ? "#2b3744" : "#424244") : "#2d2d30" //(btnClose.down ? "#717171" : "#565656") : "#646464"
+                        // border.color: "#888"
+                        //radius: 4
+        
+                    }                                 
                 }
-            }  
+            }
             Rectangle {
                 id : decorator;
-                property int targetX: (mscoreMajorVersion >= 4)?bar.currentItem.x:bar.currentItem.x+bar.width-invertTab.width  // trick for MU3.6: bar.currentItem.x is negative !!
+                property int targetX: (mscoreMajorVersion >= 4)?bar.currentItem.x:bar.currentItem.x+2*invertTab.width  // trick for MU3.6: bar.currentItem.x is negative !!
                 anchors.top: bar.bottom;
                 width: bar.currentItem.width;
                 height: 2;
@@ -702,7 +842,7 @@ MuseScore {
                     sequence: "Tab"
                     onActivated: {
                     //focus next tab
-                    bar.currentIndex = (bar.currentIndex + 1)%3
+                    bar.currentIndex = (bar.currentIndex + 1)%4
                 }
             }   
             }    
@@ -801,146 +941,202 @@ MuseScore {
             
             }///end reverse items
                 
-            // Item{
+            ////////////  Invert TAB ////////////////////
                
                 
-                ColumnLayout{                
-                    //x: 10////80 
-                    enabled: invertTab.checked
-                    visible: invertTab.checked
-                
-                    //anchors.topMargin: 20
-                    anchors.top: bar.bottom
-                    anchors.topMargin: 20
-                    anchors.left: parent.left
+            ColumnLayout{                
+                //x: 10////80 
+                enabled: invertTab.checked
+                visible: invertTab.checked
+            
+                //anchors.topMargin: 20
+                anchors.top: bar.bottom
+                anchors.topMargin: 20
+                anchors.left: parent.left
+                anchors.leftMargin: 20
+                Label{
+                    x: 20
+                    text: "Invert Using:"
+                    font.family: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
+                    font.pointSize: 10  
+                    color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white"
+                }     
+                MyRadioButton {
+                    id: invertByOutermostPitchesBox
+                    ButtonGroup.group: options
+                    text: "Outermost Pitches" // 8                                 
+                }
+                MyRadioButton {
+                    id: invertByPitch
+                    ButtonGroup.group: options
+                    text: qsTr("Specific Pitch:")                        
+                }
+                Row{                
+                    enabled: invertByPitch.checked
+                    visible: invertByPitch.checked
+                    //x: 30
+                    anchors.left: invertByPitch.right
+                    anchors.verticalCenter: invertByPitch.verticalCenter
                     anchors.leftMargin: 20
-                    Label{
-                        x: 20
-                        text: "Invert Using:"
-                        font.family: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
-                        font.pointSize: 10  
-                        color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white"
-                    }     
-                    MyRadioButton {
-                        id: invertByOutermostPitchesBox
-                        ButtonGroup.group: options
-                        text: "Outermost Pitches" // 8                                 
-                    }
-                    MyRadioButton {
-                        id: invertByPitch
-                        ButtonGroup.group: options
-                        text: qsTr("Specific Pitch:")                        
-                    }
-                    Row{                
-                        enabled: invertByPitch.checked
-                        visible: invertByPitch.checked
-                        //x: 30
-                        anchors.left: invertByPitch.right
-                        anchors.verticalCenter: invertByPitch.verticalCenter
-                        anchors.leftMargin: 20
-                         
-                        spacing: 5              
-                    
-                        MyComboBox {               
-                            id: noteBox                            
-                            currentIndex: 0                                  
-                            model: ListModel {
-                                id: noteList                        
-                                ListElement { text: "C" }
-                                ListElement { text: "D" }
-                                ListElement { text: "E" }
-                                ListElement { text: "F" }
-                                ListElement { text: "G" }
-                                ListElement { text: "A" }
-                                ListElement { text: "B" }                    
-                            }                              
-                        }
-                    
-                        MyComboBox {               
-                            id: accidentalBox                            
-                            currentIndex: 1                                    
-                            model: ListModel {                    
-                                ListElement { text: "♭" }
-                                ListElement { text: "♮" }
-                                ListElement { text: "♯" }                                                
-                            }                            
-                        }
-
-                        SpinBox {
-                            id: octaveBox
-                            width: (mscoreMajorVersion >= 4)?50:undefined
-                            
-                            from: 0
-                            value: 4
-                            to: 9
-                            stepSize: 1
-                            hoverEnabled: true
-                            opacity: hovered ? 0.8:1 
-                            ToolTip.visible: hovered
-                            ToolTip.delay: 500                            
-                            ToolTip.text: qsTr("8va")
-                            
-                            ToolTip.timeout: 1000   
-                            font.pointSize: 10 
-                            font.family: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
-                           
-                            // background: Rectangle {
-                            //     color:(mscoreMajorVersion >= 4)? ui.theme.textFieldColor : "#242427"
-                            //     border.color: (mscoreMajorVersion >= 4)? ui.theme.strokeColor : "grey"
-                            //     radius: 4                           
-                            // }                                 
-                        }  
-                    }//row   
-                    Row {  
-                        anchors.top: invertByPitch.bottom
-                        anchors.topMargin: 30
-                        anchors.left: parent.left
-                        anchors.leftMargin:20               
                         
-                        Label{ 
-                            id: diatonic 
-                            text: "Diatonic" 
-                            font.family: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
-                            color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white"
-                        }
-                                
-                        Switch { 
-                            id: invertType
-                            anchors.verticalCenter: diatonic.verticalCenter 
-                            hoverEnabled: true
-                            opacity: hovered ? 0.8:1 
-                            checked: true
-                            indicator: Rectangle {
-                                implicitWidth: 40
-                                implicitHeight: 20
-                                x: invertType.width - width - invertType.rightPadding
-                                y: parent.height / 2 - height / 2
-                                radius: 13
-                                color: (mscoreMajorVersion >= 4)? ui.theme.textFieldColor :"#242427"//"#565656" : "#565656"
-                                border.color: (mscoreMajorVersion >= 4)? ui.theme.strokeColor : "#2d2d30"
+                    spacing: 5              
+                
+                    MyComboBox {               
+                        id: noteBox                            
+                        currentIndex: 0                                  
+                        model: ListModel {
+                            id: noteList                        
+                            ListElement { text: "C" }
+                            ListElement { text: "D" }
+                            ListElement { text: "E" }
+                            ListElement { text: "F" }
+                            ListElement { text: "G" }
+                            ListElement { text: "A" }
+                            ListElement { text: "B" }                    
+                        }                              
+                    }
+                
+                    MyComboBox {               
+                        id: accidentalBox                            
+                        currentIndex: 1                                    
+                        model: ListModel {                    
+                            ListElement { text: "♭" }
+                            ListElement { text: "♮" }
+                            ListElement { text: "♯" }                                                
+                        }                            
+                    }
 
-                                Rectangle {
-                                    x: invertType.checked ? parent.width - width : 0
-                                    width: 20
-                                    height: 20
-                                    radius: 13
-                                    border.color: (mscoreMajorVersion >= 4)? ui.theme.strokeColor:"#2d2d30"
-                                    color: (mscoreMajorVersion >= 4)? ui.theme.accentColor : "#277eb9"//"#40acff"//"#265f97"
-                                }
+                    SpinBox {
+                        id: octaveBox
+                        width: (mscoreMajorVersion >= 4)?50:undefined
+                        
+                        from: 0
+                        value: 4
+                        to: 9
+                        stepSize: 1
+                        hoverEnabled: true
+                        opacity: hovered ? 0.8:1 
+                        ToolTip.visible: hovered
+                        ToolTip.delay: 500                            
+                        ToolTip.text: qsTr("8va")
+                        
+                        ToolTip.timeout: 1000   
+                        font.pointSize: 10 
+                        font.family: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
+                        
+                        // background: Rectangle {
+                        //     color:(mscoreMajorVersion >= 4)? ui.theme.textFieldColor : "#242427"
+                        //     border.color: (mscoreMajorVersion >= 4)? ui.theme.strokeColor : "grey"
+                        //     radius: 4                           
+                        // }                                 
+                    }  
+                }//row   
+                Row {  
+                    anchors.top: invertByPitch.bottom
+                    anchors.topMargin: 30
+                    anchors.left: parent.left
+                    anchors.leftMargin:20               
+                    
+                    Label{ 
+                        id: diatonic 
+                        text: "Diatonic" 
+                        font.family: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
+                        color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white"
+                    }
+                            
+                    Switch { 
+                        id: invertType
+                        anchors.verticalCenter: diatonic.verticalCenter 
+                        hoverEnabled: true
+                        opacity: hovered ? 0.8:1 
+                        checked: true
+                        indicator: Rectangle {
+                            implicitWidth: 40
+                            implicitHeight: 20
+                            x: invertType.width - width - invertType.rightPadding
+                            y: parent.height / 2 - height / 2
+                            radius: 13
+                            color: (mscoreMajorVersion >= 4)? ui.theme.textFieldColor :"#242427"//"#565656" : "#565656"
+                            border.color: (mscoreMajorVersion >= 4)? ui.theme.strokeColor : "#2d2d30"
+
+                            Rectangle {
+                                x: invertType.checked ? parent.width - width : 0
+                                width: 20
+                                height: 20
+                                radius: 13
+                                border.color: (mscoreMajorVersion >= 4)? ui.theme.strokeColor:"#2d2d30"
+                                color: (mscoreMajorVersion >= 4)? ui.theme.accentColor : "#277eb9"//"#40acff"//"#265f97"
                             }
                         }
-                        
-                        Label{ 
-                            text: "Chromatic" 
-                            font.family: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
-                            color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white"
-                        }     
-                    }       
-                }         
-
+                    }
+                    
+                    Label{ 
+                        text: "Chromatic" 
+                        font.family: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
+                        color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white"
+                    }     
+                }       
+            }         
+            
             
                 
                 
+            
+            /////////////////// Map Tab //////////////////
+            RowLayout{                
+                //x: 10////80 
+                enabled:mapTab.checked
+                visible: mapTab.checked
+                
+                //anchors.topMargin: 20
+                anchors.top: bar.bottom
+                anchors.topMargin: 20
+                anchors.left: parent.left
+                anchors.leftMargin: 20
+                spacing: 5
+
+                Label{
+                    id: mapUntoLabel
+                    x: 20
+                    text: "Map Unto:"
+                    font.family: "segoe UI"
+                    font.pointSize: 10  
+                    color: "white"
+                }       
+
+                MyComboBox {               
+                    id: noteBoxMap                     
+                    model: ListModel {
+                        id: noteListMap                        
+                        ListElement { text: "C" }
+                        ListElement { text: "D" }
+                        ListElement { text: "E" }
+                        ListElement { text: "F" }
+                        ListElement { text: "G" }
+                        ListElement { text: "A" }
+                        ListElement { text: "B" }                    
+                    }
+                }
+                
+                MyComboBox {               
+                    id: accidentalBoxMap                        
+                    model: ListModel {                    
+                        ListElement { text: "♭" }
+                        ListElement { text: "♮" }
+                        ListElement { text: "♯" }                                        
+                    }
+                }                                
+
+                MyModesMenu{
+                    id: mainMenu
+
+                }
+            }// RowLayout
+
+                ////////////// end Map Tab //////////////////////////////
+
+
+
             RowLayout {         
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: 10                     
@@ -973,7 +1169,7 @@ MuseScore {
                      }                   
                     onClicked: {
 
-                        if ( !rotatePitchesBox.checked && !rotateRhythmBox.checked && !rotateBothBox.checked &&  !reversePitchesBox.checked && !reverseRhythmBox.checked && !reverseBothBox.checked && !invertByPitch.checked && !invertByOutermostPitchesBox.checked){
+                        if ( !rotatePitchesBox.checked && !rotateRhythmBox.checked && !rotateBothBox.checked &&  !reversePitchesBox.checked && !reverseRhythmBox.checked && !reverseBothBox.checked && !invertByPitch.checked && !invertByOutermostPitchesBox.checked && ! (mapTab.checked && mainMenu.modeNumber[1]!=null)){
                             errorDialog.text="Please select an option to perform a transformation."
                             errorDialog.open()
                         }
@@ -988,6 +1184,8 @@ MuseScore {
                         }
                     }      
                 }
+            
+
 
                 Button {
                     
