@@ -1,16 +1,17 @@
 import QtQuick 2.9
 import QtQuick.Controls 2.2
-
+import QtQuick.Layouts 1.3
 ComboBox {               
     id: ctrl
-    width: (mscoreMajorVersion >= 4)?40:undefined
+    width: (mscoreMajorVersion >= 4)?40:undefined    
     height: parent.height
+    //Layout.preferredHeight: parent.height
     currentIndex: 0    
-    font.pointSize: 10 
-    font.family: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
+    font.pointSize: 10     
+    font.family: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" ////
     hoverEnabled: true
     // opacity: hovered ? 0.8:1         
-  
+    
     contentItem: Text {
         text: ctrl.displayText
         anchors.verticalCenter: parent.verticalCenter
@@ -39,10 +40,9 @@ ComboBox {
     }
     background: Rectangle {
         color:(mscoreMajorVersion >= 4)? ui.theme.textFieldColor : "#242427"
-        //implicitWidth: parent.width
-        // implicitHeight: parent.height
+        opacity: hovered ? 0.8:1  
         ////border.width: parent && parent.activeFocus ? 2 : 1
-        border.color: (mscoreMajorVersion >= 4)? ui.theme.strokeColor : "grey"
+        border.color: (mscoreMajorVersion >= 4)? hovered? ui.theme.accentColor : ui.theme.strokeColor : "grey"
         radius: 4
     }
     // background: Rectangle {

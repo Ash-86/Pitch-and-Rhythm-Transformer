@@ -1,15 +1,19 @@
 import QtQuick 2.9
 import QtQuick.Controls 2.2
+import QtQuick.Layouts 1.3
+
 Item{
+    
     id: item
     property var modeFamily:0
-    property var mockValue:0
+    property var mockValue:0    
     property var modeNumber:[null,null]
-    
+    //Layout.preferredHeight: parent.height  
+
     Button {
         id: toolButton
-        rightPadding: 40
-                                    
+        rightPadding: 30        
+                                
         text: "Select Mode"
         hoverEnabled: true
         highlighted: hovered
@@ -18,18 +22,18 @@ Item{
         contentItem: Text {
             text: toolButton.text
             font: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
-            color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white"
-            horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignVCenter
+            color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white"            
+            anchors.verticalCenter: parent.verticalCenter
+            leftPadding: 5
             elide: Text.ElideRight
         }             
             
         background: Rectangle {
             width: parent.width
             height: parent.height
-            color: (mscoreMajorVersion >= 4)? ui.theme.buttonColor : "#646464"
+            color: (mscoreMajorVersion >= 4)? ui.theme.textFieldColor : "#646464"
             opacity: toolButton.hovered ?  (toolButton.down ? 1 : 0.5) : 0.75
-            // border.color: "#888"
+            //border.color: (mscoreMajorVersion >= 4)? hovered? ui.theme.accentColor : ui.theme.strokeColor : "grey"                    
             radius: 4
         }    
 
@@ -46,128 +50,113 @@ Item{
                 context.lineTo(width, 0);
                 context.lineTo(width / 2, height);
                 context.closePath();
-                context.fillStyle = "white";
+                context.fillStyle = (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "#646464"
                 context.fill();
             }
         }
     }
-
-    Menu {    
-        id: mainMenu       
-        width: 200
-        x: toolButton.x
-        // property var modeFamily:0
-        // property var mockValue:0
-        // property var modeNumber:[null,null]
-        Button {
-            id: majorModesBtn
-            
-            hoverEnabled: true
-            highlighted: item.modeFamily=="major"            
-            onHoveredChanged: hovered?  item.modeFamily="major": item.mockValue=0
-            Text {
-                text: "Major Modes"                   
-                anchors.verticalCenter: parent.verticalCenter
-                leftPadding: 10
-            } 
-                        
-        }
-
-        Button {
-            id: melodicModesBtn
-            
-            hoverEnabled: true
-            highlighted: item.modeFamily=="melodic"
-            onHoveredChanged: hovered?  item.modeFamily="melodic": item.mockValue=0
-            Text {
-                text: "Melodic Minor Modes"                  
-                anchors.verticalCenter: parent.verticalCenter
-                leftPadding: 10
-            }              
-        }
-
-        Button {  
-            id: harmonicModesBtn         
-            
-            hoverEnabled: true
-            highlighted: item.modeFamily=="harmonic" 
-            onHoveredChanged: hovered?  item.modeFamily="harmonic": item.mockValue=0
-            Text {
-                text: "Harmonic Minor Modes"                 
-                anchors.verticalCenter: parent.verticalCenter
-                leftPadding: 10
-            }                
-        }        
-        Button {       
-            id: otherModesBtn    
-            
-            hoverEnabled: true
-            highlighted: item.modeFamily=="other" 
-            onHoveredChanged: hovered?  item.modeFamily="other": item.mockValue=0
-            Text {
-                text: "Other"                 
-                anchors.verticalCenter: parent.verticalCenter
-                leftPadding: 10
-            }                 
-        }        
+    Rectangle{
+           id: rect
+            x: toolButton.x 
+            y: toolButton.y 
+            width:200
+            height: 200
+            visible: false
+            MouseArea{
+                anchors.fill:parent
+                hoverEnabled: true
+                onHoveredChanged: containsMouse? item.mockValue2=1 : item.mockValue2=0
+            }
     }
+
+    // component MyButton:
+    //     Button {
+    //         id: btn
+    //         height: toolButton.height                         
+    //         hoverEnabled: true 
+    //         highlighted: hovered  
+    //         //text: ""
+    //         Text {                                      
+    //             anchors.verticalCenter: parent.verticalCenter
+    //             leftPadding: 5
+    //             elide: Text.ElideRight
+    //             text: name 
+    //             font: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
+    //             color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white" 
+    //         }
+    //         background: Rectangle {                       
+    //             anchors.fill: parent
+    //             color: (mscoreMajorVersion >= 4)? ui.theme.buttonColor : "#646464"
+    //             opacity: hovered ?  (down ? 1 : 0) : 0.5                     
+    //         }  
+    //     } 
+    
+    Menu {    
+        id: mainMenu              
+        x: toolButton.x 
+        y: toolButton.y + toolButton.height             
+        width: 130 
+        background: Rectangle{
+            anchors.fill: parent 
+            color: (mscoreMajorVersion >= 4)? ui.theme.textFieldColor : "#646464"           
+            radius: 4            
+        }
+        Repeater{
+            model:modes
+            MenuItem{
+                text: model.name                
+                onHoveredChanged: hovered?  item.modeFamily=text :item.mockValue=0                
+            }
+        } 
+    }
+    
     Menu {
         id: majorModesMenu
-        x: mainMenu.x + mainMenu.width
-        y: majorModesBtn.y
-        //rightPadding: 20
-        //width: 180
-        
-        visible: (mainMenu.visible && item.modeFamily=="major" ) 
+        x: mainMenu.x + mainMenu.width    
+        y: toolButton.y - toolButton.height     
+        margins: -1  
+        implicitWidth: 60       
+        background: Rectangle{
+            anchors.fill: parent
+            color: (mscoreMajorVersion >= 4)? ui.theme.textFieldColor : "#646464"            
+            radius: 4            
+        }
+        visible: mainMenu.visible   && item.modeFamily=="Major Modes"  
         Repeater{                      
             model: majorModes              
-            delegate: Button {
-                                            
-                Text {
-                    //anchors.centerIn: parent                   
-                    anchors.verticalCenter: parent.verticalCenter
-                    leftPadding: 10
-                    text: name
-                }
-                                
-                hoverEnabled: true
-                highlighted: hovered  
+            MenuItem{
+                text: model.name   
                 onClicked: {
                     toolButton.text=name
                     item.modeNumber=[item.modeFamily, index]                         
                     mainMenu.close()
                     console.log(item.modeNumber)               
-                }
-                
+                }                
             }
         }       
     }
 
     Menu {
         id: melodicModesMenu
-        x: mainMenu.x + mainMenu.width
-        y: melodicModesBtn.y
-        //rightPadding: 20
-        //width: 180
-        
-        visible: mainMenu.visible && item.modeFamily=="melodic" 
+        x: mainMenu.x + mainMenu.width  
+        y: toolButton.y - toolButton.height 
+        implicitWidth: 110  
+        margins: -1
+        visible: mainMenu.visible && item.modeFamily=="Melodic Minor Modes" 
+
+        background: Rectangle{
+            anchors.fill: parent
+            color: (mscoreMajorVersion >= 4)? ui.theme.textFieldColor : "#646464"
+            radius: 4
+        }
         Repeater{            
             model: melodicMinorModes             
-            delegate: Button {   
-                id: button                
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    leftPadding: 10
-                    
-                    text: name
-                }
-                hoverEnabled: true
-                highlighted: hovered 
+            MenuItem{
+                text: model.name                         
                 onClicked: {
                     toolButton.text=name     
                     item.modeNumber=[item.modeFamily, index]                    
                     mainMenu.close()
-                    
                     console.log(item.modeNumber)                                   
                 }                
             }
@@ -176,23 +165,21 @@ Item{
                         
     Menu {
         id: harmonicModesMenu
-        x: mainMenu.x + mainMenu.width
-        y: harmonicModesBtn.y
-        //rightPadding: 20
-        //width: 180
-        
-        visible: mainMenu.visible && item.modeFamily=="harmonic" 
+        x: mainMenu.x + mainMenu.width   
+        y: toolButton.y  - toolButton.height 
+        margins: -1 
+        width: 100       
+        visible: mainMenu.visible && item.modeFamily=="Harmonic Minor Modes" 
+
+        background: Rectangle{
+            anchors.fill: parent
+            color: (mscoreMajorVersion >= 4)? ui.theme.textFieldColor : "#646464"
+            radius: 4            
+        }
         Repeater{            
             model: harmonicMinorModes             
-            delegate: Button {   
-                id: button                
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    leftPadding: 10                    
-                    text: name
-                }
-                hoverEnabled: true
-                highlighted: hovered 
+            MenuItem{
+                text: model.name                 
                 onClicked: {
                     toolButton.text=name 
                     item.modeNumber=[item.modeFamily, index]                        
@@ -201,26 +188,25 @@ Item{
                 }                
             }
         }       
-    }                                                  
+    }         
+
     Menu {
         id: otherModesMenu
-        x: mainMenu.x + mainMenu.width
-        y: otherModesBtn.y
-        //rightPadding: 20
-        //width: 180
-        
-        visible: mainMenu.visible && item.modeFamily=="other" 
+        x: mainMenu.x + mainMenu.width     
+        y: toolButton.y  - toolButton.height 
+        margins: -1
+        implicitWidth: 90 
+        visible: mainMenu.visible && item.modeFamily=="Other" 
+
+        background: Rectangle{
+            anchors.fill: parent
+            color: (mscoreMajorVersion >= 4)? ui.theme.textFieldColor : "#646464"
+            radius: 4            
+        }
         Repeater{            
             model: otherModes             
-            delegate: Button {   
-                id: button                
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    leftPadding: 10                    
-                    text: name
-                }
-                hoverEnabled: true
-                highlighted: hovered 
+            MenuItem{
+                text: model.name 
                 onClicked: {
                     toolButton.text=name 
                     item.modeNumber=[name, 0]                        
@@ -230,6 +216,16 @@ Item{
             }
         }       
     }             
+
+
+    ListModel {            
+        id:  modes    
+                                    
+        ListElement {name: "Major Modes" }
+        ListElement {name: "Melodic Minor Modes" }
+        ListElement {name: "Harmonic Minor Modes"} 
+        ListElement {name: "Other"} 
+    } 
 
     ListModel {            
         id:  majorModes    
@@ -270,10 +266,12 @@ Item{
     ListModel { 
             id: otherModes
 
-            ListElement {name: "Harmonic Manjor" }
+            ListElement {name: "Harmonic Major" }
+            ListElement {name: "Double Harmonic" }
             ListElement {name: "Half-Whole" }
+            ListElement {name: "Whole-Half" }
+            ListElement {name: "Whole Tone" }
             ListElement {name: "Major Pentatonic" }
-            ListElement {name: "Harmonic Major" }
-            ListElement {name: "Harmonic Major" }
+            ListElement {name: "Minor Pentatonic" }            
     }
 }

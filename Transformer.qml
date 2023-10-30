@@ -139,26 +139,56 @@ MuseScore {
         }   
         /////////////////////////////////////////////////////////////
         var scales={                       
-             major: {   
+            "Major Modes": {   
                   pitch: [-12,-10,-8,-7,-5,-3,-1],
                   tpc1: [14,16,18,13,15,17,19] ,
                   tpc2: null          
             },
-            melodic: {   
+            "Melodic Minor Modes": {   
                   pitch: [-12,-10,-9,-7,-5,-3,-1],
                   tpc1: [14,16,11,13,15,17,19],
                   tpc2: null    
             },
-            harmonic: {
+            "Harmonic Minor Modes": {
                 pitch: [-12,-10,-9,-7,-5,-4,-1],
                 tpc1: [14,16,11,13,15,10,19],
                 tpc2: null    
             },
             "Harmonic Major": { 
-                pitch: [1,2,3,3,4,],
-                tpc1: [14,16,11,13,],
+                pitch: [-12,-10,-8,-7,-5,-4,-1],
+                tpc1: [14,16,18,13,15,10,19],
                 tpc2: null
-           }
+            },
+            "Double Harmonic":{
+                pitch: [-12,-11,-8,-7,-5,-4,-1],
+                tpc1: [14,9,18,13,15,10,19],
+                tpc2: null
+            },
+            "Half-Whole" :{
+                pitch:[-12,-11,-9,-8,-6,-5,-3,-2],
+                tpc1:[14,21,23,18,20,15,17,11],
+                tpc2: null
+            },
+            "Whole-Half" :{
+                pitch:[-12,-10,-9,-7,-6,-4,-3,-1],
+                tpc1:[14,16,11,13,20,22,17,19],
+                tpc2: null
+            },
+            "Whole Tone":{
+                pitch: [-12,-10,-8,-6,-4,-2],
+                tpc1:  [14,16,18,20,22,24] ,
+                tpc2: null
+            },
+            "Major Pentatonic":{
+                pitch: [-12,-10,-8,-5,-3],
+                tpc1: [14,16,18,15,17] ,
+                tpc2: null
+            },
+            "Minor Pentatonic":{
+                pitch: [-12,-9,-7,-5,-2],
+                tpc1: [14,11,13,15,12],
+                tpc2: null
+            }
             
         }      
         //////////////////////////////////////////////////////////////////////////// 
@@ -740,7 +770,7 @@ MuseScore {
                         elide: Text.ElideRight
                     }
                     background: Rectangle {
-                        implicitWidth: parent.width/3
+                        implicitWidth: parent.width/4
                         implicitHeight: parent.height
 
                         //color: rotateTab.hovered ? (rotateTab.checked ? "#2b3744" : "#424244") : "#2d2d30" //"#717171" //(btnClose.down ? "#717171" : "#565656") : "#646464"
@@ -766,7 +796,7 @@ MuseScore {
                         elide: Text.ElideRight
                     }
                     background: Rectangle {
-                        implicitWidth: parent.width/3
+                        implicitWidth: parent.width/4
                         implicitHeight: parent.height
 
                         //color: reverseTab.hovered ? (reverseTab.checked ? "#2b3744" : "#424244") : "#2d2d30" //(btnClose.down ? "#717171" : "#565656") : "#646464"
@@ -791,7 +821,7 @@ MuseScore {
                         elide: Text.ElideRight
                     }
                     background: Rectangle {
-                        implicitWidth: parent.width/3
+                        implicitWidth: parent.width/4
                         implicitHeight: parent.height
                         
                         // color: invertTab.hovered ? (invertTab.checked ? "#2b3744" : "#424244") : "#2d2d30" //(btnClose.down ? "#717171" : "#565656") : "#646464"
@@ -807,20 +837,20 @@ MuseScore {
                     text: "Map"  
                     height: parent.height
                     contentItem: Text {
-                        text:mapTab.text
-                        font: mapTab.font
-                        color: "white"
-                        opacity:mapTab.checked ? 1 : 0.8
+                        text: mapTab.text
+                        font: bar.font
+                        color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white"
+                        //opacity: mapTab.checked ? 1 : 0.8
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                         elide: Text.ElideRight
                     }
                     background: Rectangle {
-                        implicitWidth: parent.width/3
+                        implicitWidth: parent.width/4
                         implicitHeight: parent.height
 
-                        color: mapTab.hovered ? (mapTab.checked ? "#2b3744" : "#424244") : "#2d2d30" //(btnClose.down ? "#717171" : "#565656") : "#646464"
-                        // border.color: "#888"
+                        color: (mscoreMajorVersion >= 4)? (mapTab.hovered? ui.theme.buttonColor : ui.theme.backgroundPrimaryColor) : "#2d2d30"
+                        opacity: mapTab.hovered ? (mapTab.down ? 1:0.5) : 0.75
                         //radius: 4
         
                     }                                 
@@ -877,7 +907,7 @@ MuseScore {
                 Row{
                     //x: 30
                     anchors.top: rotateBothBox.bottom
-                    anchors.topMargin: 20
+                    anchors.topMargin: 15
                     Label {
                         text: "Select number of steps by which to rotate: "
                         //color: sysActivePalette.text//"#333"   
@@ -1033,7 +1063,7 @@ MuseScore {
                 }//row   
                 Row {  
                     anchors.top: invertByPitch.bottom
-                    anchors.topMargin: 30
+                    anchors.topMargin: 20
                     anchors.left: parent.left
                     anchors.leftMargin:20               
                     
@@ -1083,57 +1113,62 @@ MuseScore {
                 
             
             /////////////////// Map Tab //////////////////
-            RowLayout{                
-                //x: 10////80 
-                enabled:mapTab.checked
-                visible: mapTab.checked
+            Item{                
                 
-                //anchors.topMargin: 20
+                enabled:mapTab.checked
+                visible: mapTab.checked                
+                
                 anchors.top: bar.bottom
                 anchors.topMargin: 20
                 anchors.left: parent.left
-                anchors.leftMargin: 20
-                spacing: 5
+                anchors.leftMargin: 20                
 
                 Label{
-                    id: mapUntoLabel
-                    x: 20
+                    id: mapUntoLabel                    
                     text: "Map Unto:"
                     font.family: "segoe UI"
                     font.pointSize: 10  
-                    color: "white"
+                    color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white"
                 }       
-
-                MyComboBox {               
-                    id: noteBoxMap                     
-                    model: ListModel {
-                        id: noteListMap                        
-                        ListElement { text: "C" }
-                        ListElement { text: "D" }
-                        ListElement { text: "E" }
-                        ListElement { text: "F" }
-                        ListElement { text: "G" }
-                        ListElement { text: "A" }
-                        ListElement { text: "B" }                    
-                    }
-                }
+                Row{
+                    height:25
+                    anchors.top: mapUntoLabel.bottom                    
+                    anchors.topMargin: 10
+                    spacing:5
                 
-                MyComboBox {               
-                    id: accidentalBoxMap                        
-                    model: ListModel {                    
-                        ListElement { text: "♭" }
-                        ListElement { text: "♮" }
-                        ListElement { text: "♯" }                                        
+                    MyComboBox { 
+                        id: noteBoxMap                                      
+                        model: ListModel {
+                            id: noteListMap                        
+                            ListElement { text: "C" }
+                            ListElement { text: "D" }
+                            ListElement { text: "E" }
+                            ListElement { text: "F" }
+                            ListElement { text: "G" }
+                            ListElement { text: "A" }
+                            ListElement { text: "B" }                    
+                        }
                     }
-                }                                
+                    
+                    MyComboBox {               
+                        id: accidentalBoxMap
+                        model: ListModel {                    
+                            ListElement { text: "♭" }
+                            ListElement { text: "♮" }
+                            ListElement { text: "♯" }                                        
+                        }
+                    }                                
 
-                MyModesMenu{
-                    id: mainMenu
-
-                }
-            }// RowLayout
-
-                ////////////// end Map Tab //////////////////////////////
+                    MyModesMenu{
+                        id: mainMenu
+                        anchors.left: accidentalBoxMap.right 
+                        anchors.leftMargin: 5
+                        anchors.verticalCenter: parent.verticalCenter
+                        height: 30
+                    }
+                }// RowLayout
+            }/// Item
+            ////////////// end Map Tab //////////////////////////////
 
 
 
