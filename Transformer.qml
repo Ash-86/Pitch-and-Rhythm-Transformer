@@ -205,43 +205,48 @@ MuseScore {
         else{
             var step= stepBox.val
         }
-        
-        if (rotatePitchesBox.checked){
-            var Pitches= rotateArray(onlyPitches,step) 
-            editPitches(Pitches)
+        if (rotateTab.checked){
+            if (rotatePitchesBox.checked){
+                var Pitches= rotateArray(onlyPitches,step) 
+                editPitches(Pitches)
+            }
+            if (rotateRhythmBox.checked){
+                var Rhythm= rotateArray(Rhythm,step)
+                reWrite(Pitches,Rhythm)
+            }
+            if (rotateBothBox.checked){
+                var Pitches=rotateArray(Pitches,step)
+                var Rhythm= rotateArray(Rhythm,step)
+                reWrite(Pitches,Rhythm)
+            }
         }
-        if (rotateRhythmBox.checked){
-            var Rhythm= rotateArray(Rhythm,step)
-            reWrite(Pitches,Rhythm)
+        if (reverseTab.checked){
+            if (reversePitchesBox.checked){
+                var onlyPitches= onlyPitches.reverse()
+                editPitches(onlyPitches)
+            }
+            if (reverseRhythmBox.checked){
+                var Rhythm=Rhythm.reverse()
+                reWrite(Pitches,Rhythm)
+            }
+            if (reverseBothBox.checked){
+                var Pitches= Pitches.reverse()
+                var Rhythm=Rhythm.reverse()
+                reWrite(Pitches,Rhythm)
+            }
         }
-        if (rotateBothBox.checked){
-            var Pitches=rotateArray(Pitches,step)
-            var Rhythm= rotateArray(Rhythm,step)
-            reWrite(Pitches,Rhythm)
-        }
-        if (reversePitchesBox.checked){
-            var onlyPitches= onlyPitches.reverse()
-            editPitches(onlyPitches)
-        }
-        if (reverseRhythmBox.checked){
-            var Rhythm=Rhythm.reverse()
-            reWrite(Pitches,Rhythm)
-        }
-        if (reverseBothBox.checked){
-            var Pitches= Pitches.reverse()
-            var Rhythm=Rhythm.reverse()
-            reWrite(Pitches,Rhythm)
-        }
-        if (invertByPitch.checked){
+        if(invertTab.checked){
+            if (invertByPitch.checked){
             var accidental=accidentalBox.currentText
             var octave=octaveBox.value
             var noteValue=noteBox.currentText
              
             var pivot= getPivot(noteValue,accidental, octave)
             invert(pivot, invertType.position)
-        }
-        if (invertByOutermostPitchesBox.checked){
-            invertUsingOutermostPitches(invertType.position)
+            }
+            if (invertByOutermostPitchesBox.checked){
+                invertUsingOutermostPitches(invertType.position)
+            }
         }
         if (mapTab.checked && mainMenu.modeNumber[1]!=null){
             var notename=noteBoxMap.currentText
@@ -884,23 +889,23 @@ MuseScore {
                 x: 20////80 
                 anchors.top:bar.bottom 
                 anchors.topMargin:20
-                ButtonGroup {id: options}
+                ButtonGroup {id: rotateOptions}
 
                 MyRadioButton {
                     //color: sysActivePalette.text
                     id: rotatePitchesBox
-                    ButtonGroup.group: options
+                    ButtonGroup.group: rotateOptions
                     text: "Rotate Pitches" 
                 }
                 MyRadioButton {
                     //color: sysActivePalette
                     id: rotateRhythmBox
-                    ButtonGroup.group: options
+                    ButtonGroup.group: rotateOptions
                     text: qsTr("Rotate Rhythm")
                 }
                 MyRadioButton {
                     id: rotateBothBox
-                    ButtonGroup.group: options
+                    ButtonGroup.group: rotateOptions
                     text: qsTr("Rotate Pitches and Rhythm")
                 }
             
@@ -946,26 +951,26 @@ MuseScore {
             }
            
         
-            ColumnLayout {    //reverse items     
+            ColumnLayout {    //reverse items                  
                 enabled: reverseTab.checked
                 visible: reverseTab.checked
                 x: 20////80 
                 anchors.top:bar.bottom 
                 anchors.topMargin:20  
-
+                ButtonGroup {id: reverseOptions}
                 MyRadioButton {
                     id: reversePitchesBox
-                    ButtonGroup.group: options
+                    ButtonGroup.group: reverseOptions
                     text: "Reverse Pitches" // 8
                 }
                 MyRadioButton {
                     id: reverseRhythmBox
-                    ButtonGroup.group: options
+                    ButtonGroup.group: reverseOptions
                     text: qsTr("Reverse Rhythm")
                 }
                 MyRadioButton {
                     id: reverseBothBox
-                    ButtonGroup.group: options           
+                    ButtonGroup.group: reverseOptions           
                     text: qsTr("Reverse Pitches and Rhythm")
                 }
             
@@ -974,11 +979,10 @@ MuseScore {
             ////////////  Invert TAB ////////////////////
                
                 
-            ColumnLayout{                
-                //x: 10////80 
+            ColumnLayout{  
                 enabled: invertTab.checked
                 visible: invertTab.checked
-            
+                ButtonGroup {id: invertOptions}
                 //anchors.topMargin: 20
                 anchors.top: bar.bottom
                 anchors.topMargin: 20
@@ -993,12 +997,12 @@ MuseScore {
                 }     
                 MyRadioButton {
                     id: invertByOutermostPitchesBox
-                    ButtonGroup.group: options
+                    ButtonGroup.group: invertOptions
                     text: "Outermost Pitches" // 8                                 
                 }
                 MyRadioButton {
                     id: invertByPitch
-                    ButtonGroup.group: options
+                    ButtonGroup.group: invertOptions
                     text: qsTr("Specific Pitch:")                        
                 }
                 Row{                
@@ -1205,7 +1209,10 @@ MuseScore {
                      }                   
                     onClicked: {
 
-                        if ( !rotatePitchesBox.checked && !rotateRhythmBox.checked && !rotateBothBox.checked &&  !reversePitchesBox.checked && !reverseRhythmBox.checked && !reverseBothBox.checked && !invertByPitch.checked && !invertByOutermostPitchesBox.checked && ! (mapTab.checked && mainMenu.modeNumber[1]!=null)){
+                        if ( (rotateTab.checked && !rotatePitchesBox.checked && !rotateRhythmBox.checked && !rotateBothBox.checked ) ||
+                            (reverseTab.checked && !reversePitchesBox.checked && !reverseRhythmBox.checked && !reverseBothBox.checked) ||
+                            (invertTab.checked && !invertByPitch.checked && !invertByOutermostPitchesBox.checked) ||
+                            (mapTab.checked && mainMenu.modeNumber[1]==null) ){
                             errorDialog.text="Please select an option to perform a transformation."
                             errorDialog.open()
                         }
