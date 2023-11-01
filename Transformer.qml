@@ -1126,7 +1126,7 @@ MuseScore {
                 Label{
                     id: mapUntoLabel                    
                     text: "Map Unto:"
-                    font.family: "segoe UI"
+                    font.family: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
                     font.pointSize: 10  
                     color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white"
                 }       
@@ -1152,6 +1152,7 @@ MuseScore {
                     
                     MyComboBox {               
                         id: accidentalBoxMap
+                        currentIndex: 1
                         model: ListModel {                    
                             ListElement { text: "♭" }
                             ListElement { text: "♮" }
