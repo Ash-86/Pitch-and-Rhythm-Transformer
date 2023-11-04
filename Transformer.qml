@@ -38,7 +38,7 @@ MuseScore {
             mainWindow.title = "Transform Pitches and Rhythm"
             mainWindow.thumbnailName = "Transformer.jpg"
             mainWindow.categoryCode = "Composition"
-            mainWindow.width=350
+            mainWindow.width=370
             mainWindow.height=250
         } else {
             mainWindow.width=550
@@ -263,6 +263,9 @@ MuseScore {
              //console.log("Map: ",Map.pitch, Map.tpc1)
             // var oldMap= getDiatonicMap()
             // console.log("old diatonicMap", oldMap.pitch,   oldMap.tpc1 )
+        }
+        if(mapPitchTab.checked){
+            mapPitch()
         }
 
         curScore.selection.selectRange(startTick, endTick, startStaff, endStaff);
@@ -716,7 +719,73 @@ MuseScore {
             }                
         }///end performMapping
         //////////////////////////// end Mapping Functions ////////////////////////////
+        
+        function mapPitch(){ 
+            var oldNote= getPivot(myMapPitch.noteIn, myMapPitch.accIn, myMapPitch.octIn)                  
+            var newNote= getPivot(myMapPitch.noteOut, myMapPitch.accOut, myMapPitch.octOut) 
+            function fixNewPitch(scorePitch,newPitch){
+                if (myMapPitch.down){                        
+                while(scorePitch - newPitch<=0){ 
+                        newPitch-=12
+                }                  
+                while(scorePitch - newPitch>12){
+                    newPitch+=12
+                }
+                }
+                if ( myMapPitch.up){                        
+                while(newPitch - scorePitch<=0){ 
+                        newPitch+=12
+                }                  
+                while(newPitch - scorePitch>12){
+                    newPitch-=12
+                }
+                }                     
+                return newPitch                     
+            }
             
+            while (cursor.segment != null && cursor.tick < endTick) {
+                var el=cursor.element              
+                if (el.type == Element.CHORD) {                                                                                
+                    for ( var n=0; n<el.notes.length; n++){                             
+                        if( myMapPitch.allOct && myMapPitch.enharm){
+                            if((el.notes[n].pitch-oldNote.pitch)%12==0 ){
+                                newNote.pitch = fixNewPitch(el.notes[n].pitch, newNote.pitch )
+                                el.notes[n].pitch=newNote.pitch
+                                el.notes[n].tpc1=newNote.tpc1
+                                el.notes[n].tpc2=newNote.tpc2
+                                }
+                        }
+                        if( myMapPitch.allOct && !myMapPitch.enharm){                                    
+                            if((el.notes[n].pitch-oldNote.pitch)%12==0  && (el.notes[n].tpc==oldNote.tpc1 || el.notes[n].tpc==oldNote.tpc2) ){
+                                    console.log("here" ,el.notes[n].pitch, el.notes[n].tpc,oldNote.tpc2)
+                                    newNote.pitch = fixNewPitch(el.notes[n].pitch, newNote.pitch )
+                                    console.log("here" ,newNote.pitch)
+                                    el.notes[n].pitch=newNote.pitch
+                                    el.notes[n].tpc1=newNote.tpc1
+                                    el.notes[n].tpc2=newNote.tpc2
+                                }
+                        }     
+                        if(!myMapPitch.allOct && myMapPitch.enharm){
+                            if( el.notes[n].pitch==oldNote.pitch ){
+                                    newNote.pitch=fixNewPitch(el.notes[n].pitch, newNote.pitch )
+                                    el.notes[n].pitch=newNote.pitch
+                                    el.notes[n].tpc1=newNote.tpc1
+                                    el.notes[n].tpc2=newNote.tpc2
+                                }
+                        }
+                        if( !myMapPitch.allOct && !myMapPitch.enharm){                                   
+                            if(el.notes[n].pitch==oldNote.pitch  && (el.notes[n].tpc==oldNote.tpc1 || el.notes[n].tpc==oldNote.tpc2) ) {
+                                newNote.pitch=fixNewPitch(el.notes[n].pitch, newNote.pitch )                                         
+                                el.notes[n].pitch=newNote.pitch
+                                el.notes[n].tpc1=newNote.tpc1
+                                el.notes[n].tpc2=newNote.tpc2
+                            }
+                        }
+                    }//for
+                }///if
+                cursor.next()
+            }///while    
+        }///mapPitches()    
     }/// end transfor  
 
 
@@ -856,6 +925,30 @@ MuseScore {
 
                         color: (mscoreMajorVersion >= 4)? (mapTab.hovered? ui.theme.buttonColor : ui.theme.backgroundPrimaryColor) : "#2d2d30"
                         opacity: mapTab.hovered ? (mapTab.down ? 1:0.5) : 0.75
+                        //radius: 4
+        
+                    }                                 
+                }
+
+                TabButton {
+                    id: mapPitchTab 
+                    text: "Map Pitch"  
+                    height: parent.height
+                    contentItem: Text {
+                        text: mapPitchTab.text
+                        font: bar.font
+                        color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white"
+                        //opacity: mapTab.checked ? 1 : 0.8
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        elide: Text.ElideRight
+                    }
+                    background: Rectangle {
+                        implicitWidth: parent.width/4
+                        implicitHeight: parent.height
+
+                        color: (mscoreMajorVersion >= 4)? (mapPitchTab.hovered? ui.theme.buttonColor : ui.theme.backgroundPrimaryColor) : "#2d2d30"
+                        opacity: mapPitchTab.hovered ? (mapPitchTab.down ? 1:0.5) : 0.75
                         //radius: 4
         
                     }                                 
@@ -1174,7 +1267,11 @@ MuseScore {
                 }// RowLayout
             }/// Item
             ////////////// end Map Tab //////////////////////////////
-
+            MyMapPitch{
+                  id: myMapPitch
+                  enabled: mapPitchTab.checked
+                  visible: mapPitchTab.checked
+             }
 
 
             RowLayout {         
@@ -1212,7 +1309,8 @@ MuseScore {
                         if ( (rotateTab.checked && !rotatePitchesBox.checked && !rotateRhythmBox.checked && !rotateBothBox.checked ) ||
                             (reverseTab.checked && !reversePitchesBox.checked && !reverseRhythmBox.checked && !reverseBothBox.checked) ||
                             (invertTab.checked && !invertByPitch.checked && !invertByOutermostPitchesBox.checked) ||
-                            (mapTab.checked && mainMenu.modeNumber[1]==null) ){
+                            (mapTab.checked && mainMenu.modeNumber[1]==null) ||
+                            (!mapPitchTab.checked) ){
                             errorDialog.text="Please select an option to perform a transformation."
                             errorDialog.open()
                         }

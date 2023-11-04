@@ -9,8 +9,7 @@ ComboBox {
     currentIndex: 0    
     font.pointSize: 10     
     font.family: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" ////
-    hoverEnabled: true
-    // opacity: hovered ? 0.8:1         
+    hoverEnabled: true           
     
     contentItem: Text {
         text: ctrl.displayText
@@ -44,14 +43,5 @@ ComboBox {
         ////border.width: parent && parent.activeFocus ? 2 : 1
         border.color: (mscoreMajorVersion >= 4)? hovered? ui.theme.accentColor : ui.theme.strokeColor : "grey"
         radius: 4
-    }
-    // background: Rectangle {
-    //     implicitWidth: parent.width
-    //     implicitHeight: parent.height
-
-    //     color: notesBox.hovered ? (notesBox.pressed ? "#2b3744" : "#424244") : "#2d2d30" //(btnClose.down ? "#717171" : "#565656") : "#646464"
-    //     // border.color: "#888"
-    //     //radius: 4
-
-    // }    
+    }    
 }
