@@ -421,7 +421,7 @@ MuseScore {
                 
                 
         function getTrans(){ ///get instrument tranposition value
-             cursor.rewindToTick(startTick)
+             //cursor.rewindToTick(startTick)
              while (cursor.segment && cursor.tick < endTick){
                var el=cursor.element
                if (el.type==Element.CHORD){
