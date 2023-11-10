@@ -3,7 +3,7 @@ import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.3
 
 Item{
-    
+    height: parent.height
     id: item
     property var modeFamily:0
     property var mockValue:0    

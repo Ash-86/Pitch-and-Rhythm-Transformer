@@ -4,8 +4,8 @@ import QtQuick.Layouts 1.3
 
 Item{  
     id:root 
-    property var itemsArr: noteMap
-    property var listCount: mapList.count
+    //property var itemsArr: noteMap
+    //property var listCount: mapList.count
     property var allOct: allOctaves.checked
     property var noteIn: noteBoxFrom.currentText;
     property var accIn: accidentalBoxFrom.currentText;
@@ -16,6 +16,8 @@ Item{
     property var octOut: octaveBoxTo.value 
     property var down: downBtn.checked                         
     property var up:  upBtn.checked                      
+    property var filter: mapPitchSwitch.position==1 //filter checked
+
     anchors{
         left: parent.left
         top: parent.top
@@ -25,36 +27,79 @@ Item{
     }   
     ColumnLayout{
         id: pitchMapBoxes    
-        spacing: 15    
-        
-        Row{
-        height: 30
-        spacing: 2
-            Button{   
+        spacing: 10    
+        RowLayout{                         
+            Label{ 
+                anchors.verticalCenter: parent.verticalCenter
                 id: mapPitchOption              
-                text: "Map Pitch:"
-                checkable: true
-                checked: !filterOptions.checked
+                text: "Map Pitch"
+                font.family: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
+                color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white"
+            }
+                    
+            Switch { 
+                id: mapPitchSwitch
+                anchors.verticalCenter: diatonic.verticalCenter 
                 hoverEnabled: true
-                highlighted: hovered
-                implicitWidth: contentItem.implicitWidth+ leftPadding + rightPadding
-                
-            }   
-            Button{
+                opacity: hovered ? 0.8:1 
+                //checked: true
+                indicator: Rectangle {
+                    implicitWidth: 40
+                    implicitHeight: 16
+                    x: mapPitchSwitch.width - width - mapPitchSwitch.rightPadding
+                    y: parent.height / 2 - height / 2
+                    radius: 13
+                    color: (mscoreMajorVersion >= 4)? ui.theme.textFieldColor :"#242427"//"#565656" : "#565656"
+                    border.color: (mscoreMajorVersion >= 4)? ui.theme.strokeColor : "#2d2d30"
+
+                    Rectangle {
+                        x: mapPitchSwitch.checked ? parent.width - width : 0
+                        width: 16
+                        height: 16
+                        radius: 13
+                        border.color: (mscoreMajorVersion >= 4)? ui.theme.strokeColor:"#2d2d30"
+                        color: (mscoreMajorVersion >= 4)? ui.theme.accentColor : "#277eb9"//"#40acff"//"#265f97"
+                    }
+                }
+            }
+        
+            Label{ 
+                anchors.verticalCenter: parent.verticalCenter
                 id: filterOptions 
                 text: "Filter/Select Pitch"
-                checkable: true
-                checked: !mapPitchOption.checked
-                hoverEnabled: true
-                highlighted: hovered
-                implicitWidth: contentItem.implicitWidth+ leftPadding + rightPadding
-            
-            }
+                font.family: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
+                color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white"
+            }  
         }
+        // Row{
+        // height: 30
+        // spacing: 2
+        //     Button{   
+        //         id: mapPitchOption              
+        //         text: "Map Pitch:"
+        //         checkable: true
+        //         checked: !filterOptions.checked
+        //         hoverEnabled: true
+        //         highlighted: hovered
+        //         implicitWidth: contentItem.implicitWidth+ leftPadding + rightPadding
+                
+        //     }   
+        //     Button{
+        //         id: filterOptions 
+        //         text: "Filter/Select Pitch"
+        //         checkable: true
+        //         checked: !mapPitchOption.checked
+        //         hoverEnabled: true
+        //         highlighted: hovered
+        //         implicitWidth: contentItem.implicitWidth+ leftPadding + rightPadding
+            
+        //     }
+        // }
                
         Row{ 
             id: mapFromRow  
             spacing: 2
+            height: 25
             MyComboBox {               
                 id: noteBoxFrom                            
                 currentIndex: 0                                  
@@ -178,7 +223,8 @@ Item{
              
     ColumnLayout{
         id: pitchMapBoxes2
-        visible: !filterOptions.checked
+        visible: mapPitchSwitch.position==0 //!filterOptions.checked
+        spacing: 10
         anchors{
             top: pitchMapBoxes.bottom
             left: pitchMapBoxes.left

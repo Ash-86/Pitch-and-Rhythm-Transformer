@@ -73,71 +73,7 @@ MuseScore {
         cursor.rewind(1);       // beginning of selection
         ///////////////////////////////////////////////////
     
-        ///////////   Get arrays: Pitches, onlyPitches, Rhythm (durations)///////
-        var onlyPitches=[]///without rests
-        var Pitches=[]
-        var Rhythm=[]
-        var Hnote={pitch:0, tpc1:0, tpc2:0} ///highest Note
-        var Lnote={pitch:128, tpc1:128, tpc2:128} //lowest note
-        while (cursor.segment != null && cursor.tick < endTick) {            
-            var chord=[]           
-            var el=cursor.element
-
-            if(el.type == Element.REST) { 
-                var chord = 'REST'; 
-            }
-            if (el.type == Element.CHORD) {
-                for (var n in el.notes){                    
-                    if(el.notes[n].pitch > Hnote.pitch){
-                        Hnote.pitch = el.notes[n].pitch
-                        Hnote.tpc1 = el.notes[n].tpc1
-                        Hnote.tpc2 = el.notes[n].tpc2
-                    }
-                    if(el.notes[n].pitch < Lnote.pitch){
-                        Lnote.pitch = el.notes[n].pitch
-                        Lnote.tpc1 = el.notes[n].tpc1
-                        Lnote.tpc2 = el.notes[n].tpc2
-                    }  
-                    var chordNote ={ 
-                        pitch: el.notes[n].pitch, 
-                        tpc: el.notes[n].tpc, 
-                        tpc1: el.notes[n].tpc1, 
-                        tpc2: el.notes[n].tpc2 
-                    }
-                                    
-                    chord.push(chordNote)
-                    //chord.push([pitch,tpc, tpc1,tpc2]) 
-                }
-                onlyPitches.push(chord)  ///array without rests
-            } 
-            Pitches.push(chord)
-
-            const durations={ 
-                dur: [el.duration.numerator, el.duration.denominator],
-                tupdur: 0,
-                ratio: 0,
-                tuplength: 0,                              
-                atMeasureEnd: cursor.tick===cursor.measure.lastSegment.tick 
-            }
-
-            if(el.tuplet) { // tuplets are a special case
-                durations.tupdur = [el.tuplet.globalDuration.numerator, el.tuplet.globalDuration.denominator]
-                durations.ratio = [el.tuplet.actualNotes, el.tuplet.normalNotes]
-                durations.tupLength= el.tuplet.elements.length
-            }            
-            
-            Rhythm.push(durations)
-             
-            cursor.next();
-        }
-        /////////////////////////////////////////////////////////////
         
-        if (!onlyPitches.length) {
-            errorDialog.text="Selection empty. No changes made!"            
-            errorDialog.open()                       
-            return     
-        }   
-        /////////////////////////////////////////////////////////////
         var scales={                       
             "Major Modes": {   
                   pitch: [-12,-10,-8,-7,-5,-3,-1],
@@ -191,89 +127,192 @@ MuseScore {
             }
             
         }      
-        //////////////////////////////////////////////////////////////////////////// 
-        cursor.rewind(1) 
+        ////////////////////////////////////////////////////////////////////////////         
        
         curScore.startCmd()
-        //// if tuplet at ends of selection change rotation step to number of tuplet notes
-        if (Rhythm[Rhythm.length-1].ratio[0]>0 && stepBox.val>0){
-            var step =Rhythm[Rhythm.length-1].tupLength
-        }
-        else if (Rhythm[0].ratio[0]>0 && stepBox.val<0){
-            var step=-Rhythm[0].tupLength
-        }
-        else{
-            var step= stepBox.val
-        }
-        if (rotateTab.checked){
-            if (rotatePitchesBox.checked){
-                var Pitches= rotateArray(onlyPitches,step) 
-                editPitches(Pitches)
-            }
-            if (rotateRhythmBox.checked){
-                var Rhythm= rotateArray(Rhythm,step)
-                reWrite(Pitches,Rhythm)
-            }
-            if (rotateBothBox.checked){
-                var Pitches=rotateArray(Pitches,step)
-                var Rhythm= rotateArray(Rhythm,step)
-                reWrite(Pitches,Rhythm)
-            }
-        }
-        if (reverseTab.checked){
-            if (reversePitchesBox.checked){
-                var onlyPitches= onlyPitches.reverse()
-                editPitches(onlyPitches)
-            }
-            if (reverseRhythmBox.checked){
-                var Rhythm=Rhythm.reverse()
-                reWrite(Pitches,Rhythm)
-            }
-            if (reverseBothBox.checked){
-                var Pitches= Pitches.reverse()
-                var Rhythm=Rhythm.reverse()
-                reWrite(Pitches,Rhythm)
-            }
-        }
-        if(invertTab.checked){
-            if (invertByPitch.checked){
-            var accidental=accidentalBox.currentText
-            var octave=octaveBox.value
-            var noteValue=noteBox.currentText
-             
-            var pivot= getPivot(noteValue,accidental, octave)
-            invert(pivot, invertType.position)
-            }
-            if (invertByOutermostPitchesBox.checked){
-                invertUsingOutermostPitches(invertType.position)
-            }
-        }
-        if (mapTab.checked && mainMenu.modeNumber[1]!=null){
-            var notename=noteBoxMap.currentText
-            var noteacc=accidentalBoxMap.currentText
-            var pivot= getPivot(notename,noteacc,-1)
-    
-            var scale=scales[mainMenu.modeNumber[0]]
-            var modeDistance= scale.pitch[mainMenu.modeNumber[1]] +12 //+12 because the modes pitches above start from -12
 
-            var transposedScale=transpose(scale,pivot.pitch-modeDistance ) // ,curScore.keysig)
-            console.log("transpsed scale:", transposedScale.pitch, transposedScale.tpc1 ) 
-            var Map= getScaleMap(transposedScale) 
-            performMapping(Map) 
-             //console.log("Map: ",Map.pitch, Map.tpc1)
-            // var oldMap= getDiatonicMap()
-            // console.log("old diatonicMap", oldMap.pitch,   oldMap.tpc1 )
-        }
-        if(mapPitchTab.checked){
-            mapPitch()
-        }
+        for (var track=startTrack; track<endTrack; track++){ 
+            cursor.track=track
+            cursor.rewindToTick(startTick)
+            if(!cursor.element){ //check if voice exists
+               continue
+            } 
 
-        curScore.selection.selectRange(startTick, endTick, startStaff, endStaff);
-        curScore.endCmd()
-        //////////////////////////////////////////////////////////////////////
+            if (rotateTab.checked){
+                var arrays= getArrays()
+                var Pitches = arrays.pitches
+                var onlyPitches= arrays.onlyPitches
+                var Rhythm = arrays.rhythm
+                var step = getStep(Rhythm, stepBox.val) 
+
+                if (rotatePitchesBox.checked){                
+                    var Pitches= rotateArray(onlyPitches,step) 
+                    editPitches(Pitches)                    
+                }
+                if (rotateRhythmBox.checked){
+                    var Rhythm= rotateArray(Rhythm,step)
+                    reWrite(Pitches,Rhythm)
+                }
+                if (rotateBothBox.checked){
+                    var Pitches=rotateArray(Pitches,step)
+                    var Rhythm= rotateArray(Rhythm,step)
+                    reWrite(Pitches,Rhythm)
+                }
+            }
+            if (reverseTab.checked){
+                var arrays= getArrays()
+                var Pitches = arrays.pitches
+                var onlyPitches= arrays.onlyPitches
+                var Rhythm = arrays.rhythm           
+
+                if (reversePitchesBox.checked){
+                    var onlyPitches= onlyPitches.reverse()
+                    editPitches(onlyPitches)
+                }
+                if (reverseRhythmBox.checked){
+                    var Rhythm=Rhythm.reverse()
+                    reWrite(Pitches,Rhythm)
+                }
+                if (reverseBothBox.checked){
+                    var Pitches= Pitches.reverse()
+                    var Rhythm=Rhythm.reverse()
+                    reWrite(Pitches,Rhythm)
+                }
+            }
+            if(invertTab.checked){
+                if (invertByPitch.checked){
+                    var accidental=accidentalBox.currentText
+                    var octave=octaveBox.value
+                    var noteValue=noteBox.currentText
+                    
+                    var pivot= getPivot(noteValue,accidental, octave)
+                    invert(pivot, invertType.position)
+                }
+                if (invertByOutermostPitchesBox.checked){
+                    var arrays = getArrays()
+                    var Hnote= arrays.Hnote
+                    var Lnote= arrays.Lnote
+                    invertUsingOutermostPitches(invertType.position)
+                }
+            }
+            if (mapTab.checked && mainMenu.modeNumber[1]!=null){
+                var notename=noteBoxMap.currentText
+                var noteacc=accidentalBoxMap.currentText
+                var pivot= getPivot(notename,noteacc,-1)
         
-        function editPitches(Pitches){
-                      
+                var scale=scales[mainMenu.modeNumber[0]]
+                var modeDistance= scale.pitch[mainMenu.modeNumber[1]] +12 //+12 because the modes pitches above start from -12
+
+                var transposedScale=transpose(scale,pivot.pitch-modeDistance ) // ,curScore.keysig)
+                console.log("transpsed scale:", transposedScale.pitch, transposedScale.tpc1 ) 
+                var Map= getScaleMap(transposedScale) 
+                performMapping(Map) 
+                //console.log("Map: ",Map.pitch, Map.tpc1)
+                // var oldMap= getDiatonicMap()
+                // console.log("old diatonicMap", oldMap.pitch,   oldMap.tpc1 )
+            }
+            if(mapPitchTab.checked){
+                mapPitch()
+            }
+
+        }//end for tracks
+
+        //curScore.selection.selectRange(startTick, endTick, startStaff, endStaff);
+        curScore.endCmd()
+
+        /////////////// Function Definitions //////////////////////////////////////////////
+
+        function getArrays(){   //   Get arrays: Pitches, onlyPitches, Rhythm (durations)
+            var onlyPitches=[]  //without rests
+            var Pitches=[]
+            var Rhythm=[]
+            var Hnote={pitch:0, tpc1:0, tpc2:0} ///highest Note
+            var Lnote={pitch:128, tpc1:128, tpc2:128} //lowest note
+            while (cursor.segment != null && cursor.tick < endTick) {            
+                var chord=[]           
+                var el=cursor.element
+
+                if(el.type == Element.REST) { 
+                    var chord = 'REST'; 
+                }
+                if (el.type == Element.CHORD) {
+                    for (var n in el.notes){                    
+                        if(el.notes[n].pitch > Hnote.pitch){
+                            Hnote.pitch = el.notes[n].pitch
+                            Hnote.tpc1 = el.notes[n].tpc1
+                            Hnote.tpc2 = el.notes[n].tpc2
+                        }
+                        if(el.notes[n].pitch < Lnote.pitch){
+                            Lnote.pitch = el.notes[n].pitch
+                            Lnote.tpc1 = el.notes[n].tpc1
+                            Lnote.tpc2 = el.notes[n].tpc2
+                        }  
+                        var chordNote ={ 
+                            pitch: el.notes[n].pitch, 
+                            tpc: el.notes[n].tpc, 
+                            tpc1: el.notes[n].tpc1, 
+                            tpc2: el.notes[n].tpc2 
+                        }
+                                        
+                        chord.push(chordNote)
+                        //chord.push([pitch,tpc, tpc1,tpc2]) 
+                    }
+                    onlyPitches.push(chord)  ///array without rests
+                } 
+                Pitches.push(chord)
+
+                const durations={ 
+                    dur: [el.duration.numerator, el.duration.denominator],
+                    tupdur: 0,
+                    ratio: 0,
+                    tuplength: 0,                              
+                    atMeasureEnd: cursor.tick===cursor.measure.lastSegment.tick 
+                }
+
+                if(el.tuplet) { // tuplets are a special case
+                    durations.tupdur = [el.tuplet.globalDuration.numerator, el.tuplet.globalDuration.denominator]
+                    durations.ratio = [el.tuplet.actualNotes, el.tuplet.normalNotes]
+                    durations.tupLength= el.tuplet.elements.length
+                }            
+                
+                Rhythm.push(durations)
+                
+                cursor.next();
+            }
+            if (!onlyPitches.length) {
+                errorDialog.text="Selection empty. No changes made!"            
+                errorDialog.open()                       
+                return     
+            }   
+            var arrays={
+                pitches: Pitches,
+                onlyPitches: onlyPitches,
+                rhythm: Rhythm,
+                Hnote: Hnote,
+                Lnote: Lnote
+            }
+            cursor.rewindToTick(startTick)
+            return arrays
+        }
+
+
+
+        function getStep(Rhythm, inputStep){   //// if tuplet at ends of selection change rotation step to number of tuplet notes
+            if (Rhythm[Rhythm.length-1].ratio[0]>0 && inputStep>0){
+                var step =Rhythm[Rhythm.length-1].tupLength
+            }
+            else if (Rhythm[0].ratio[0]>0 && inputStep<0){
+                var step=-Rhythm[0].tupLength
+            }
+            else{
+                var step= inputStep
+            }
+            return step
+        }
+
+
+
+        function editPitches(Pitches){                      
             var i=0
             while (cursor.segment != null && cursor.tick < endTick) {
                 var el=cursor.element              
@@ -298,7 +337,8 @@ MuseScore {
                 }
                 // console.log("tick: ", cursor.tick)        
                 cursor.next()
-            }  
+            } 
+            curScore.selection.selectRange(startTick, endTick, startStaff, endStaff); 
         }      
     
        
@@ -570,7 +610,7 @@ MuseScore {
                         }                                
                     }
                 }                              
-              cursor.next()             
+                cursor.next()             
             } 
             getEnharmonic()
         }     
@@ -725,20 +765,20 @@ MuseScore {
             var newNote= getPivot(myMapPitch.noteOut, myMapPitch.accOut, myMapPitch.octOut) 
             function fixNewPitch(scorePitch,newPitch){
                 if (myMapPitch.down){                        
-                while(scorePitch - newPitch<=0){ 
+                    while(scorePitch - newPitch<=0){ 
                         newPitch-=12
-                }                  
-                while(scorePitch - newPitch>12){
+                    }                  
+                    while(scorePitch - newPitch>12){
                     newPitch+=12
-                }
+                    }
                 }
                 if ( myMapPitch.up){                        
-                while(newPitch - scorePitch<=0){ 
+                    while(newPitch - scorePitch<=0){ 
                         newPitch+=12
-                }                  
-                while(newPitch - scorePitch>12){
-                    newPitch-=12
-                }
+                    }                  
+                    while(newPitch - scorePitch>12){
+                        newPitch-=12
+                    }
                 }                     
                 return newPitch                     
             }
@@ -749,14 +789,24 @@ MuseScore {
                     for ( var n=0; n<el.notes.length; n++){                             
                         if( myMapPitch.allOct && myMapPitch.enharm){
                             if((el.notes[n].pitch-oldNote.pitch)%12==0 ){
-                                newNote.pitch = fixNewPitch(el.notes[n].pitch, newNote.pitch )
-                                el.notes[n].pitch=newNote.pitch
-                                el.notes[n].tpc1=newNote.tpc1
-                                el.notes[n].tpc2=newNote.tpc2
+                                if(myMapPitch.filter){
+                                    curScore.selection.select(el.notes[n], true) 
                                 }
+                                else{
+                                    newNote.pitch = fixNewPitch(el.notes[n].pitch, newNote.pitch )
+                                    el.notes[n].pitch=newNote.pitch
+                                    el.notes[n].tpc1=newNote.tpc1
+                                    el.notes[n].tpc2=newNote.tpc2
+                                }
+                                
+                            }
                         }
                         if( myMapPitch.allOct && !myMapPitch.enharm){                                    
                             if((el.notes[n].pitch-oldNote.pitch)%12==0  && (el.notes[n].tpc==oldNote.tpc1 || el.notes[n].tpc==oldNote.tpc2) ){
+                                    if(myMapPitch.filter){
+                                    curScore.selection.select(el.notes[n], true) 
+                                }
+                                else{
                                     console.log("here" ,el.notes[n].pitch, el.notes[n].tpc,oldNote.tpc2)
                                     newNote.pitch = fixNewPitch(el.notes[n].pitch, newNote.pitch )
                                     console.log("here" ,newNote.pitch)
@@ -764,28 +814,39 @@ MuseScore {
                                     el.notes[n].tpc1=newNote.tpc1
                                     el.notes[n].tpc2=newNote.tpc2
                                 }
+                            }
                         }     
                         if(!myMapPitch.allOct && myMapPitch.enharm){
                             if( el.notes[n].pitch==oldNote.pitch ){
+                                    if(myMapPitch.filter){
+                                    curScore.selection.select(el.notes[n], true) 
+                                }
+                                else{
                                     newNote.pitch=fixNewPitch(el.notes[n].pitch, newNote.pitch )
                                     el.notes[n].pitch=newNote.pitch
                                     el.notes[n].tpc1=newNote.tpc1
                                     el.notes[n].tpc2=newNote.tpc2
                                 }
+                            }
                         }
                         if( !myMapPitch.allOct && !myMapPitch.enharm){                                   
                             if(el.notes[n].pitch==oldNote.pitch  && (el.notes[n].tpc==oldNote.tpc1 || el.notes[n].tpc==oldNote.tpc2) ) {
-                                newNote.pitch=fixNewPitch(el.notes[n].pitch, newNote.pitch )                                         
-                                el.notes[n].pitch=newNote.pitch
-                                el.notes[n].tpc1=newNote.tpc1
-                                el.notes[n].tpc2=newNote.tpc2
+                                if(myMapPitch.filter){
+                                    curScore.selection.select(el.notes[n], true) 
+                                }
+                                else{
+                                    newNote.pitch=fixNewPitch(el.notes[n].pitch, newNote.pitch )                                         
+                                    el.notes[n].pitch=newNote.pitch
+                                    el.notes[n].tpc1=newNote.tpc1
+                                    el.notes[n].tpc2=newNote.tpc2
+                                }
                             }
                         }
                     }//for
                 }///if
                 cursor.next()
             }///while    
-        }///mapPitches()    
+        }///mapPitches()         
     }/// end transfor  
 
 
@@ -908,7 +969,7 @@ MuseScore {
                 }              
                 TabButton {
                     id: mapTab 
-                    text: "Map"  
+                    text: "Map Scale"  
                     height: parent.height
                     contentItem: Text {
                         text: mapTab.text
@@ -1179,7 +1240,7 @@ MuseScore {
                         checked: true
                         indicator: Rectangle {
                             implicitWidth: 40
-                            implicitHeight: 20
+                            implicitHeight: 16
                             x: invertType.width - width - invertType.rightPadding
                             y: parent.height / 2 - height / 2
                             radius: 13
@@ -1188,8 +1249,8 @@ MuseScore {
 
                             Rectangle {
                                 x: invertType.checked ? parent.width - width : 0
-                                width: 20
-                                height: 20
+                                width: 16
+                                height: 16
                                 radius: 13
                                 border.color: (mscoreMajorVersion >= 4)? ui.theme.strokeColor:"#2d2d30"
                                 color: (mscoreMajorVersion >= 4)? ui.theme.accentColor : "#277eb9"//"#40acff"//"#265f97"
@@ -1214,7 +1275,7 @@ MuseScore {
                 
                 enabled:mapTab.checked
                 visible: mapTab.checked                
-                
+                height: 25
                 anchors.top: bar.bottom
                 anchors.topMargin: 20
                 anchors.left: parent.left
@@ -1262,7 +1323,7 @@ MuseScore {
                         anchors.left: accidentalBoxMap.right 
                         anchors.leftMargin: 5
                         anchors.verticalCenter: parent.verticalCenter
-                        height: 30
+                        height: parent.height
                     }
                 }// RowLayout
             }/// Item
@@ -1306,14 +1367,14 @@ MuseScore {
                      }                   
                     onClicked: {
 
-                        if ( (rotateTab.checked && !rotatePitchesBox.checked && !rotateRhythmBox.checked && !rotateBothBox.checked ) ||
-                            (reverseTab.checked && !reversePitchesBox.checked && !reverseRhythmBox.checked && !reverseBothBox.checked) ||
-                            (invertTab.checked && !invertByPitch.checked && !invertByOutermostPitchesBox.checked) ||
-                            (mapTab.checked && mainMenu.modeNumber[1]==null) ||
-                            (!mapPitchTab.checked) ){
-                            errorDialog.text="Please select an option to perform a transformation."
-                            errorDialog.open()
-                        }
+                        // if ( (rotateTab.checked && !rotatePitchesBox.checked && !rotateRhythmBox.checked && !rotateBothBox.checked ) ||
+                        //     (reverseTab.checked && !reversePitchesBox.checked && !reverseRhythmBox.checked && !reverseBothBox.checked) ||
+                        //     (invertTab.checked && !invertByPitch.checked && !invertByOutermostPitchesBox.checked) ||
+                        //     (mapTab.checked && mainMenu.modeNumber[1]==null) ||
+                        //     (!mapPitchTab.checked) ){
+                        //     errorDialog.text="Please select an option to perform a transformation."
+                        //     errorDialog.open()
+                        // }
                         var cursor=curScore.newCursor()
                         cursor.rewind(1)
                         if (!cursor.segment) {
