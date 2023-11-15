@@ -51,10 +51,15 @@ MuseScore {
     }
 
     
-    function applyTransform(){
-        
+    function applyTransform(){        
         
         var cursor = curScore.newCursor(); 
+        cursor.rewind(1)
+        if (!cursor.segment) {
+            errorDialog.text="No valid range selection on current score!"            
+            errorDialog.open() 
+            return
+        }  
 
         /////// Get Selection //////////////////////////
         cursor.rewind(2); // go to the end of the selection
@@ -857,416 +862,381 @@ MuseScore {
         standardButtons: StandardButton.Ok
         title: qsTr('Warning')
         text: ""
-    }
-    SystemPalette {
-        id: sysActivePalette;
-        colorGroup: SystemPalette.Active
-    }
+    }    
     
     Rectangle {
-        id : window
-        //title: qsTr("rotate Pitches and Rhythm…")
-        anchors.fill: parent
-        //minimumWidth :300
-        //minimumHeight : 200
-        //visible : true
-        color : (mscoreMajorVersion >= 4)?ui.theme.backgroundSecondaryColor:"#363638"//"#2d2d30" //sysActivePalette//"#333"
-        
-       
-        MouseArea {
-            id: mouseArea
-            anchors.rightMargin: 0
-            anchors.bottomMargin: 0
-            anchors.leftMargin: 0
-            anchors.topMargin: 0
-            anchors.fill: parent
+        id : window        
+        anchors.fill: parent        
+        color : (mscoreMajorVersion >= 4)?ui.theme.backgroundSecondaryColor:"#363638"        
 
-            TabBar {
-                id:bar 
-                width: parent.width                
-                height: parent.height/8
-                currentIndex: 0
-                
-                MyTabButton {
-                    id: rotateTab 
-                    text: "Rotate"                      
-                }
-                MyTabButton {
-                    id: reverseTab
-                    text: "Retrograde"                        
-                }
-                MyTabButton {
-                    id: invertTab 
-                    text: "Invert"                                    
-                }              
-                MyTabButton {
-                    id: mapTab 
-                    text: "Map Scale"                                        
-                }
-                MyTabButton {
-                    id: mapPitchTab 
-                    text: "Map Pitch"                                           
-                }
+        TabBar {
+            id:bar 
+            width: parent.width                
+            height: parent.height/8
+            currentIndex: 0
+            
+            MyTabButton {
+                id: rotateTab 
+                text: "Rotate"                      
             }
-            Rectangle {
-                id : decorator;
-                property int targetX: (mscoreMajorVersion >= 4)?bar.currentItem.x:bar.currentItem.x+2*invertTab.width  // trick for MU3.6: bar.currentItem.x is negative !!
-                anchors.top: bar.bottom;
-                width: bar.currentItem.width;
-                height: 2;
-                color: (mscoreMajorVersion >= 4)? ui.theme.accentColor : "#2093fe"
-                NumberAnimation on x {
-                    duration: 100;
-                    to: decorator.targetX
-                    running: decorator.x != decorator.targetX
-                }
-                Shortcut {
-                    sequence: "Tab"
-                    onActivated: {
-                    //focus next tab
-                    bar.currentIndex = (bar.currentIndex + 1)%4
-                    }
-                }   
-            }    
-        
-            
-            ColumnLayout {    /// rotate items
-                enabled: rotateTab.checked
-                visible: rotateTab.checked
-                x: 20////80 
-                anchors.top:bar.bottom 
-                anchors.topMargin:20
-                ButtonGroup {id: rotateOptions}
-
-                MyRadioButton {                    
-                    id: rotatePitchesBox
-                    ButtonGroup.group: rotateOptions
-                    text: "Rotate Pitches" 
-                }
-                MyRadioButton {                    
-                    id: rotateRhythmBox
-                    ButtonGroup.group: rotateOptions
-                    text: qsTr("Rotate Rhythm")
-                }
-                MyRadioButton {
-                    id: rotateBothBox
-                    ButtonGroup.group: rotateOptions
-                    text: qsTr("Rotate Pitches and Rhythm")
-                }
-            
-                Row{                   
-                    anchors.top: rotateBothBox.bottom
-                    anchors.topMargin: 15
-                    Label {
-                        id: stepBoxText
-                        text: "Select number of steps by which to rotate: "                         
-                        font.family: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
-                        font.pointSize: 10        
-                        color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor :  "white"
-                    }
-            
-                    SpinBox {
-                        id: stepBox
-                        anchors.verticalCenter: stepBoxText.verticalCenter
-                        // width: 50 
-                        width: (mscoreMajorVersion >= 4)?50:undefined
-                        font.pointSize: 10                
-                        font.family: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
-                        hoverEnabled: true
-                        opacity: hovered ? 0.8:1
-                        from: -100
-                        value: 0
-                        to: 99
-                        stepSize: 1
-
-                        // background: Rectangle {
-                        //     color:(mscoreMajorVersion >= 4)? ui.theme.textFieldColor : "#242427"
-                        //     border.color: (mscoreMajorVersion >= 4)? ui.theme.strokeColor : "grey"
-                        //     radius: 4                           
-                        // }                         
-
-                        textFromValue: function (value) {
-                            return Number((value < 0) ? value : value + 1); //  bypass 0: -2, -1, 1, 2
-                        }
-                        property var val: (stepBox.value<0) ? stepBox.value : stepBox.value+1      //get value corresponding to displayed number    
-                    } 
-                } 
+            MyTabButton {
+                id: reverseTab
+                text: "Retrograde"                        
             }
-           
-        
-            ColumnLayout {    //reverse items                  
-                enabled: reverseTab.checked
-                visible: reverseTab.checked
-                x: 20////80 
-                anchors.top:bar.bottom 
-                anchors.topMargin:20  
-                ButtonGroup {id: reverseOptions}
-                MyRadioButton {
-                    id: reversePitchesBox
-                    ButtonGroup.group: reverseOptions
-                    text: "Reverse Pitches" // 8
-                }
-                MyRadioButton {
-                    id: reverseRhythmBox
-                    ButtonGroup.group: reverseOptions
-                    text: qsTr("Reverse Rhythm")
-                }
-                MyRadioButton {
-                    id: reverseBothBox
-                    ButtonGroup.group: reverseOptions           
-                    text: qsTr("Reverse Pitches and Rhythm")
-                }
-            
-            }///end reverse items
-                
-            ////////////  Invert TAB ////////////////////
-               
-                
-            ColumnLayout{  
-                enabled: invertTab.checked
-                visible: invertTab.checked
-                ButtonGroup {id: invertOptions}                
-                anchors.top: bar.bottom
-                anchors.topMargin: 20
-                anchors.left: parent.left
-                anchors.leftMargin: 20
-                Label{
-                    x: 20
-                    text: "Invert Using:"
-                    font.family: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
-                    font.pointSize: 10  
-                    color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white"
-                }     
-                MyRadioButton {
-                    id: invertByOutermostPitchesBox
-                    ButtonGroup.group: invertOptions
-                    text: "Outermost Pitches" // 8                                 
-                }
-                MyRadioButton {
-                    id: invertByPitch
-                    ButtonGroup.group: invertOptions
-                    text: qsTr("Specific Pitch:")                        
-                }
-                Row{                
-                    enabled: invertByPitch.checked
-                    visible: invertByPitch.checked                    
-                    anchors.left: invertByPitch.right
-                    anchors.verticalCenter: invertByPitch.verticalCenter
-                    anchors.leftMargin: 20
-                        
-                    spacing: 5              
-                
-                    MyComboBox {               
-                        id: noteBox                            
-                        currentIndex: 0                                  
-                        model: ListModel {
-                            id: noteList                        
-                            ListElement { text: "C" }
-                            ListElement { text: "D" }
-                            ListElement { text: "E" }
-                            ListElement { text: "F" }
-                            ListElement { text: "G" }
-                            ListElement { text: "A" }
-                            ListElement { text: "B" }                    
-                        }                              
-                    }
-                
-                    MyComboBox {               
-                        id: accidentalBox                            
-                        currentIndex: 1                                    
-                        model: ListModel {                    
-                            ListElement { text: "♭" }
-                            ListElement { text: "♮" }
-                            ListElement { text: "♯" }                                                
-                        }                            
-                    }
-
-                    SpinBox {
-                        id: octaveBox
-                        width: (mscoreMajorVersion >= 4)?50:undefined
-                        
-                        from: 0
-                        value: 4
-                        to: 9
-                        stepSize: 1
-                        hoverEnabled: true
-                        opacity: hovered ? 0.8:1 
-                        ToolTip.visible: hovered
-                        ToolTip.delay: 500                            
-                        ToolTip.text: qsTr("8va")
-                        
-                        ToolTip.timeout: 1000   
-                        font.pointSize: 10 
-                        font.family: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
-                        
-                        // background: Rectangle {
-                        //     color:(mscoreMajorVersion >= 4)? ui.theme.textFieldColor : "#242427"
-                        //     border.color: (mscoreMajorVersion >= 4)? ui.theme.strokeColor : "grey"
-                        //     radius: 4                           
-                        // }                                 
-                    }  
-                }//row   
-                Row {  
-                    anchors.top: invertByPitch.bottom
-                    anchors.topMargin: 20
-                    anchors.left: parent.left
-                    anchors.leftMargin:20               
-                    
-                    Label{ 
-                        id: diatonic 
-                        text: "Diatonic" 
-                        font.family: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
-                        color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white"
-                    }
-                            
-                    Switch { 
-                        id: invertType
-                        anchors.verticalCenter: diatonic.verticalCenter 
-                        hoverEnabled: true
-                        opacity: hovered ? 0.8:1 
-                        checked: true
-                        indicator: Rectangle {
-                            implicitWidth: 40
-                            implicitHeight: 16
-                            x: invertType.width - width - invertType.rightPadding
-                            y: parent.height / 2 - height / 2
-                            radius: 13
-                            color: (mscoreMajorVersion >= 4)? ui.theme.textFieldColor :"#242427"//"#565656" : "#565656"
-                            border.color: (mscoreMajorVersion >= 4)? ui.theme.strokeColor : "#2d2d30"
-
-                            Rectangle {
-                                x: invertType.checked ? parent.width - width : 0
-                                width: 16
-                                height: 16
-                                radius: 13
-                                border.color: (mscoreMajorVersion >= 4)? ui.theme.strokeColor:"#2d2d30"
-                                color: (mscoreMajorVersion >= 4)? ui.theme.accentColor : "#277eb9"//"#40acff"//"#265f97"
-                            }
-                        }
-                    }
-                    
-                    Label{ 
-                        text: "Chromatic" 
-                        font.family: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
-                        color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white"
-                    }     
-                }       
-            }         
-            
-            
-                
-                
-            
-            /////////////////// Map Tab //////////////////
-            Item{                
-                
-                enabled:mapTab.checked
-                visible: mapTab.checked                
-                height: 25
-                anchors.top: bar.bottom
-                anchors.topMargin: 20
-                anchors.left: parent.left
-                anchors.leftMargin: 20                
-
-                Label{
-                    id: mapUntoLabel                    
-                    text: "Map Unto:"
-                    font.family: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
-                    font.pointSize: 10  
-                    color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white"
-                }       
-                Row{
-                    height:25
-                    anchors.top: mapUntoLabel.bottom                    
-                    anchors.topMargin: 10
-                    spacing:5
-                
-                    MyComboBox { 
-                        id: noteBoxMap                                      
-                        model: ListModel {
-                            id: noteListMap                        
-                            ListElement { text: "C" }
-                            ListElement { text: "D" }
-                            ListElement { text: "E" }
-                            ListElement { text: "F" }
-                            ListElement { text: "G" }
-                            ListElement { text: "A" }
-                            ListElement { text: "B" }                    
-                        }
-                    }
-                    
-                    MyComboBox {               
-                        id: accidentalBoxMap
-                        currentIndex: 1
-                        model: ListModel {                    
-                            ListElement { text: "♭" }
-                            ListElement { text: "♮" }
-                            ListElement { text: "♯" }                                        
-                        }
-                    }                                
-
-                    MyModesMenu{
-                        id: mainMenu
-                        anchors.left: accidentalBoxMap.right 
-                        anchors.leftMargin: 5
-                        anchors.verticalCenter: parent.verticalCenter
-                        height: parent.height
-                    }
-                }// RowLayout
-            }/// Item
-            ////////////// end Map Tab //////////////////////////////
-            MyMapPitch{
-                  id: myMapPitch
-                  enabled: mapPitchTab.checked
-                  visible: mapPitchTab.checked
-             }
-
-
-            RowLayout {         
-                spacing: 5          
-                anchors{
-                    bottom: parent.bottom
-                    right: parent.right
-                    margins: 10                     
-                }     
-                MyButton {   
-                    text: qsTr("Apply")
-                    accented: true
-                    onClicked: {                       
-                        var cursor=curScore.newCursor()
-                        cursor.rewind(1)
-                        if (!cursor.segment) {
-                            errorDialog.text="No valid range selection on current score!"            
-                            errorDialog.open() 
-                        }   
-                        else{         
-                            applyTransform()
-                        }
-                    }      
-                }
-                MyButton {
-                    text: qsTr("Close")                         
-                    onClicked: mainWindow.parent.Window.window.close()                     
-                }        
+            MyTabButton {
+                id: invertTab 
+                text: "Invert"                                    
+            }              
+            MyTabButton {
+                id: mapTab 
+                text: "Map Scale"                                        
             }
-
-            //  Item{
-            //     id: escapeItem
-            //     focus: true
-                
-            //            keys.onShortcutOverride: (event)=> event.accepted = (event.key === Qt.Key_Escape)
-            //         Keys.onEscapePressed: {quit()}      
-            // }    
-
+            MyTabButton {
+                id: mapPitchTab 
+                text: "Map Pitch"                                           
+            }
+        }
+        Rectangle {
+            id : decorator;
+            property int targetX: (mscoreMajorVersion >= 4)?bar.currentItem.x:bar.currentItem.x+2*invertTab.width  // trick for MU3.6: bar.currentItem.x is negative !!
+            anchors.top: bar.bottom;
+            width: bar.currentItem.width;
+            height: 2;
+            color: (mscoreMajorVersion >= 4)? ui.theme.accentColor : "#2093fe"
+            NumberAnimation on x {
+                duration: 100;
+                to: decorator.targetX
+                running: decorator.x != decorator.targetX
+            }
             Shortcut {
-                sequence: "Esc"//StandardKey.Quit//"Escape"
-                //enabled: true
-                //context: Qt.WindowShortcut//Qt.ApplicationShortcut
-                onActivated: {mainWindow.parent.Window.window.close()}
-                
-            } 
-            
-        }//mouse area
+                sequence: "Tab"
+                onActivated: {
+                //focus next tab
+                bar.currentIndex = (bar.currentIndex + 1)%4
+                }
+            }   
+        }    
+    
         
+        ColumnLayout {    /// rotate items
+            enabled: rotateTab.checked
+            visible: rotateTab.checked
+             
+            anchors{
+                top:bar.bottom 
+                left: parent.left
+                margins:20
+            }
+            ButtonGroup {id: rotateOptions}
+
+            MyRadioButton {                    
+                id: rotatePitchesBox
+                ButtonGroup.group: rotateOptions
+                text: "Rotate Pitches" 
+            }
+            MyRadioButton {                    
+                id: rotateRhythmBox
+                ButtonGroup.group: rotateOptions
+                text: qsTr("Rotate Rhythm")
+            }
+            MyRadioButton {
+                id: rotateBothBox
+                ButtonGroup.group: rotateOptions
+                text: qsTr("Rotate Pitches and Rhythm")
+            }
+        
+            Row{  
+                spacing: 5
+                Label {
+                    id: stepBoxText
+                    text: "Select number of steps by which to rotate: "                         
+                    font.family: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
+                    font.pointSize: 10        
+                    color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor :  "white"
+                }
+        
+                SpinBox {
+                    id: stepBox
+                    anchors.verticalCenter: stepBoxText.verticalCenter
+                    // width: 50 
+                    width: (mscoreMajorVersion >= 4)?50:undefined
+                    font.pointSize: 10                
+                    font.family: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
+                    hoverEnabled: true
+                    opacity: hovered ? 0.8:1
+                    from: -100
+                    value: 0
+                    to: 99
+                    stepSize: 1
+
+                    // background: Rectangle {
+                    //     color:(mscoreMajorVersion >= 4)? ui.theme.textFieldColor : "#242427"
+                    //     border.color: (mscoreMajorVersion >= 4)? ui.theme.strokeColor : "grey"
+                    //     radius: 4                           
+                    // }                         
+
+                    textFromValue: function (value) {
+                        return Number((value < 0) ? value : value + 1); //  bypass 0: -2, -1, 1, 2
+                    }
+                    property var val: (stepBox.value<0) ? stepBox.value : stepBox.value+1      //get value corresponding to displayed number    
+                } 
+            } 
+        }
+        
+    
+        ColumnLayout {    //reverse items                  
+            enabled: reverseTab.checked
+            visible: reverseTab.checked            
+            anchors{
+                top:bar.bottom
+                left: parent.left 
+                margins:20 
+            } 
+            ButtonGroup {id: reverseOptions}
+            MyRadioButton {
+                id: reversePitchesBox
+                ButtonGroup.group: reverseOptions
+                text: "Reverse Pitches" // 8
+            }
+            MyRadioButton {
+                id: reverseRhythmBox
+                ButtonGroup.group: reverseOptions
+                text: qsTr("Reverse Rhythm")
+            }
+            MyRadioButton {
+                id: reverseBothBox
+                ButtonGroup.group: reverseOptions           
+                text: qsTr("Reverse Pitches and Rhythm")
+            }
+        
+        }///end reverse items
+            
+        ////////////  Invert TAB ////////////////////
+            
+            
+        ColumnLayout{  
+            enabled: invertTab.checked
+            visible: invertTab.checked
+            ButtonGroup {id: invertOptions}                
+            anchors{
+                top: bar.bottom
+                left: parent.left
+                margins: 20                
+            }
+            Label{
+                x: 20
+                text: "Invert Using:"
+                font.family: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
+                font.pointSize: 10  
+                color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white"
+            }     
+            MyRadioButton {
+                id: invertByOutermostPitchesBox
+                ButtonGroup.group: invertOptions
+                text: "Outermost Pitches" // 8                                 
+            }
+            MyRadioButton {
+                id: invertByPitch
+                ButtonGroup.group: invertOptions
+                text: qsTr("Specific Pitch:")                        
+            }
+            Row{                
+                enabled: invertByPitch.checked
+                visible: invertByPitch.checked                    
+                spacing: 5              
+                anchors{
+                    left: invertByPitch.right
+                    verticalCenter: invertByPitch.verticalCenter
+                    leftMargin: 20
+                }     
+                MyComboBox {               
+                    id: noteBox                            
+                    currentIndex: 0                                  
+                    model: ListModel {
+                        id: noteList                        
+                        ListElement { text: "C" }
+                        ListElement { text: "D" }
+                        ListElement { text: "E" }
+                        ListElement { text: "F" }
+                        ListElement { text: "G" }
+                        ListElement { text: "A" }
+                        ListElement { text: "B" }                    
+                    }                              
+                }
+            
+                MyComboBox {               
+                    id: accidentalBox                            
+                    currentIndex: 1                                    
+                    model: ListModel {                    
+                        ListElement { text: "♭" }
+                        ListElement { text: "♮" }
+                        ListElement { text: "♯" }                                                
+                    }                            
+                }
+
+                SpinBox {
+                    id: octaveBox
+                    width: (mscoreMajorVersion >= 4)?50:undefined
+                    
+                    from: 0
+                    value: 4
+                    to: 9
+                    stepSize: 1
+                    hoverEnabled: true
+                    opacity: hovered ? 0.8:1 
+                    ToolTip.visible: hovered
+                    ToolTip.delay: 500                            
+                    ToolTip.text: qsTr("8va")
+                    
+                    ToolTip.timeout: 1000   
+                    font.pointSize: 10 
+                    font.family: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
+                    
+                    // background: Rectangle {
+                    //     color:(mscoreMajorVersion >= 4)? ui.theme.textFieldColor : "#242427"
+                    //     border.color: (mscoreMajorVersion >= 4)? ui.theme.strokeColor : "grey"
+                    //     radius: 4                           
+                    // }                                 
+                }  
+            }//row   
+            Row {  
+                anchors{
+                    top: invertByPitch.bottom
+                    left: parent.left
+                    margins: 20
+                }                          
+                
+                Label{ 
+                    id: diatonic 
+                    text: "Diatonic" 
+                    font.family: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
+                    color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white"
+                }
+                        
+                Switch { 
+                    id: invertType
+                    anchors.verticalCenter: diatonic.verticalCenter 
+                    hoverEnabled: true
+                    opacity: hovered ? 0.8:1 
+                    checked: true
+                    indicator: Rectangle {
+                        implicitWidth: 40
+                        implicitHeight: 16
+                        x: invertType.width - width - invertType.rightPadding
+                        y: parent.height / 2 - height / 2
+                        radius: 13
+                        color: (mscoreMajorVersion >= 4)? ui.theme.textFieldColor :"#242427"//"#565656" : "#565656"
+                        border.color: (mscoreMajorVersion >= 4)? ui.theme.strokeColor : "#2d2d30"
+
+                        Rectangle {
+                            x: invertType.checked ? parent.width - width : 0
+                            width: 16
+                            height: 16
+                            radius: 13
+                            border.color: (mscoreMajorVersion >= 4)? ui.theme.strokeColor:"#2d2d30"
+                            color: (mscoreMajorVersion >= 4)? ui.theme.accentColor : "#277eb9"//"#40acff"//"#265f97"
+                        }
+                    }
+                }
+                
+                Label{ 
+                    text: "Chromatic" 
+                    font.family: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
+                    color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white"
+                }     
+            }       
+        }                     
+        
+        /////////////////// Map Tab //////////////////
+        ColumnLayout{    
+            enabled: mapTab.checked
+            visible: mapTab.checked
+            spacing: 10               
+            
+            anchors{
+                top: bar.bottom            
+                left: parent.left
+                margins: 20  
+            }
+            Label{
+                id: mapUntoLabel                    
+                text: "Map Unto:"
+                font.family: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
+                font.pointSize: 10  
+                color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white"
+            }       
+            Row{
+                height:25                
+                spacing:5
+            
+                MyComboBox { 
+                    id: noteBoxMap                                      
+                    model: ListModel {
+                        id: noteListMap                        
+                        ListElement { text: "C" }
+                        ListElement { text: "D" }
+                        ListElement { text: "E" }
+                        ListElement { text: "F" }
+                        ListElement { text: "G" }
+                        ListElement { text: "A" }
+                        ListElement { text: "B" }                    
+                    }
+                }
+                
+                MyComboBox {               
+                    id: accidentalBoxMap
+                    currentIndex: 1
+                    model: ListModel {                    
+                        ListElement { text: "♭" }
+                        ListElement { text: "♮" }
+                        ListElement { text: "♯" }                                        
+                    }
+                }                                
+
+                MyModesMenu{
+                    id: mainMenu
+                    anchors.left: accidentalBoxMap.right 
+                    anchors.leftMargin: 5                    
+                }
+            }// Row
+        }/// ColumnLayout
+        ////////////// end Map Tab //////////////////////////////
+
+        MyMapPitch{
+            id: myMapPitch
+            enabled: mapPitchTab.checked
+            visible: mapPitchTab.checked
+            anchors{
+                left: parent.left
+                top: bar.bottom                
+                margins: 20                
+            }  
+        }
+
+        ///////////////////////////////////////////////////////////
+        RowLayout {         
+            spacing: 5          
+            anchors{
+                bottom: parent.bottom
+                right: parent.right
+                margins: 10                     
+            }     
+            MyButton {   
+                text: qsTr("Apply")
+                accented: true
+                onClicked: applyTransform()
+            }
+            MyButton {
+                text: qsTr("Close")                         
+                onClicked: mainWindow.parent.Window.window.close()                     
+            }        
+        }        
+
+        Shortcut {
+            sequence: "Esc"//StandardKey.Quit//"Escape"
+            //enabled: true
+            //context: Qt.WindowShortcut//Qt.ApplicationShortcut
+            onActivated: mainWindow.parent.Window.window.close()            
+        } 
     }//end window
-}//end ms
+}//end MU

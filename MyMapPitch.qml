@@ -18,13 +18,7 @@ Item{
     property var up:  upBtn.checked                      
     property var filter: mapPitchSwitch.position==1 //filter checked
 
-    anchors{
-        left: parent.left
-        top: parent.top
-        verticalCenter: invertByPitch.verticalCenter
-        leftMargin: 20
-        topMargin: 50
-    }   
+     
     ColumnLayout{
         id: pitchMapBoxes    
         spacing: 10    

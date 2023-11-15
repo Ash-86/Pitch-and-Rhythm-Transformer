@@ -3,39 +3,19 @@ import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.3
 
 Item{
-    height: parent.height
     id: item
     property var modeFamily:0
     property var mockValue:0    
     property var modeNumber:[null,null]
+    height: parent.height
     //Layout.preferredHeight: parent.height  
 
-    Button {
+    MyButton {
         id: toolButton
-        rightPadding: 30        
-                                
+        rightPadding: 30 
         text: "Select Mode"
-        hoverEnabled: true
-        highlighted: hovered
-        onClicked: mainMenu.open()
-
-        contentItem: Text {
-            text: toolButton.text
-            font: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
-            color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white"            
-            anchors.verticalCenter: parent.verticalCenter
-            leftPadding: 5
-            elide: Text.ElideRight
-        }             
-            
-        background: Rectangle {
-            width: parent.width
-            height: parent.height
-            color: (mscoreMajorVersion >= 4)? ui.theme.textFieldColor : "#646464"
-            opacity: toolButton.hovered ?  (toolButton.down ? 1 : 0.5) : 0.75
-            //border.color: (mscoreMajorVersion >= 4)? hovered? ui.theme.accentColor : ui.theme.strokeColor : "grey"                    
-            radius: 4
-        }    
+        
+        onClicked: mainMenu.open()        
 
         indicator: Canvas {
             x: toolButton.width - width   -10                                                      
@@ -67,29 +47,7 @@ Item{
                 hoverEnabled: true
                 onHoveredChanged: containsMouse? item.mockValue2=1 : item.mockValue2=0
             }
-    }
-
-    // component MyButton:
-    //     Button {
-    //         id: btn
-    //         height: toolButton.height                         
-    //         hoverEnabled: true 
-    //         highlighted: hovered  
-    //         //text: ""
-    //         Text {                                      
-    //             anchors.verticalCenter: parent.verticalCenter
-    //             leftPadding: 5
-    //             elide: Text.ElideRight
-    //             text: name 
-    //             font: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
-    //             color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white" 
-    //         }
-    //         background: Rectangle {                       
-    //             anchors.fill: parent
-    //             color: (mscoreMajorVersion >= 4)? ui.theme.buttonColor : "#646464"
-    //             opacity: hovered ?  (down ? 1 : 0) : 0.5                     
-    //         }  
-    //     } 
+    }    
     
     Menu {    
         id: mainMenu              
