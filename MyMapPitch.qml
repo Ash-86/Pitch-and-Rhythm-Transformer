@@ -74,23 +74,18 @@ Item{
         // Row{
         // height: 30
         // spacing: 2
-        //     Button{   
+        //     MyButton{   
         //         id: mapPitchOption              
         //         text: "Map Pitch:"
         //         checkable: true
-        //         checked: !filterOptions.checked
-        //         hoverEnabled: true
-        //         highlighted: hovered
-        //         implicitWidth: contentItem.implicitWidth+ leftPadding + rightPadding
-                
+        //         checked: !filterOptions.checked                
+        //         implicitWidth: contentItem.implicitWidth+ leftPadding + rightPadding                
         //     }   
-        //     Button{
+        //     MyButton{
         //         id: filterOptions 
         //         text: "Filter/Select Pitch"
         //         checkable: true
-        //         checked: !mapPitchOption.checked
-        //         hoverEnabled: true
-        //         highlighted: hovered
+        //         checked: !mapPitchOption.checked                 
         //         implicitWidth: contentItem.implicitWidth+ leftPadding + rightPadding
             
         //     }
@@ -150,71 +145,19 @@ Item{
                 //     radius: 4                           
                 // }                                 
             }  
-            Button{
+            MyButton{
                 id: allOctaves
                 text: "All Octaves"
-                checkable: true
-                hoverEnabled: true
-                highlighted: hovered
+                checkable: true                
                 implicitWidth: contentItem.implicitWidth+ leftPadding + rightPadding
-                height: parent.height
-                contentItem: Text { 
-                    text: allOctaves.text                                     
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter                      
-                    elide: Text.ElideRight                                  
-                    font: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
-                    color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white" 
-                }
-                background: Rectangle {                       
-                    anchors.fill: parent
-                    opacity: allOctaves.hovered ?  (allOctaves.down ? 1 : 0.5) : 0.75 
-                    radius:4                    
-                    color:{
-                        if(mscoreMajorVersion >= 4){
-                            if(allOctaves.checked){ ui.theme.accentColor}
-                            else{ ui.theme.buttonColor}
-                        }
-                        else{
-                            if(allOctaves.checked){"#277eb9"}
-                            else {"#646464"}
-                        }
-                    }
-                }   
-                
+                //height: parent.height 
             }
-            Button{
+            MyButton{
                 id: enharmonic                
                 text: "Incl. enharmonic notes"
-                checkable: true
-                hoverEnabled: true
-                highlighted: hovered
+                checkable: true               
                 implicitWidth: contentItem.implicitWidth+ leftPadding + rightPadding
-                height: parent.height
-                contentItem: Text {
-                    text: enharmonic.text                                      
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter                       
-                    elide: Text.ElideRight                                  
-                    font: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
-                    color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white" 
-                }
-                background: Rectangle {                       
-                    anchors.fill: parent
-                    opacity: enharmonic.hovered ?  (enharmonic.down ? 1 : 0.5) : 0.75 
-                    radius:4                    
-                    color:{
-                        if(mscoreMajorVersion >= 4){
-                            if(enharmonic.checked){ ui.theme.accentColor}
-                            else{ ui.theme.buttonColor}
-                        }
-                        else{
-                            if(enharmonic.checked){"#277eb9"}
-                            else {"#646464"}
-                        }
-                    }
-                }   
-            
+               // height: parent.height
             } 
             
         }//Row
@@ -285,73 +228,21 @@ Item{
                 font.family: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
             } 
             
-            Button{
+            MyButton{
                 id: upBtn
+                checkable: true
+                implicitWidth: contentItem.implicitWidth+ leftPadding + rightPadding
                 onClicked: downBtn.checked=false
+                //height: parent.height                 
                 text: "Up"
-                checkable: true
-                hoverEnabled: true
-                highlighted: hovered
-                implicitWidth: contentItem.implicitWidth+ leftPadding + rightPadding
-                height: parent.height
-                contentItem: Text { 
-                    text: upBtn.text        
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter                     
-                    elide: Text.ElideRight                                  
-                    font: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
-                    color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white" 
-                }
-                background: Rectangle {                       
-                    anchors.fill: parent
-                    opacity: upBtn.hovered ?  (upBtn.down ? 1 : 0.5) : 0.75  
-                    radius:4                    
-                    color:{
-                        if(mscoreMajorVersion >= 4){
-                            if(upBtn.checked){ ui.theme.accentColor}
-                            else{ ui.theme.buttonColor}
-                        }
-                        else{
-                            if(upBtn.checked){"#277eb9"}
-                            else {"#646464"}
-                        }
-                    }
-                }   
             }
-            Button{
+            MyButton{
                 id: downBtn
-                implicitWidth: contentItem.implicitWidth+ leftPadding + rightPadding
-                height: parent.height
                 checkable: true
-                onClicked: upBtn.checked=false
-                hoverEnabled: true
-                highlighted: hovered
-                text: "Down"
-            
-                contentItem: Text {  
-                    text: downBtn.text 
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter                                         
-                    elide: Text.ElideRight                                  
-                    font: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
-                    color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white" 
-                }
-                background: Rectangle { 
-                                          
-                    anchors.fill: parent
-                    opacity: downBtn.hovered ?  (downBtn.down ? 1 : 0.5) : 0.75  
-                    radius:4                    
-                    color:{
-                        if(mscoreMajorVersion >= 4){
-                            if(downBtn.checked){ ui.theme.accentColor}
-                            else{ ui.theme.buttonColor}
-                        }
-                        else{
-                            if(downBtn.checked){"#277eb9"}
-                            else {"#646464"}
-                        }
-                    }
-                } 
+                implicitWidth: contentItem.implicitWidth+ leftPadding + rightPadding
+                onClicked: upBtn.checked=false                
+                //height: parent.height
+                text: "Down"            
             }  
                     
         }//row 
@@ -370,61 +261,28 @@ Item{
             top:notesBoxTo.bottom
             right: parent.right
         }
-        Button{
+        MyButton{
             id: addBtn
-            width: 50               
-                                
-            hoverEnabled: true 
-            highlighted: hovered  
-        
-            Text {                                      
-                anchors.centerIn: parent                 
-                elide: Text.ElideRight 
-                text: "Add"               
-                font: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
-                color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white" 
-            }
-            background: Rectangle {                       
-                anchors.fill: parent
-                color: (mscoreMajorVersion >= 4)? ui.theme.buttonColor : "#646464"
-                opacity: addBtn.hovered ?  (addBtn.down ? 0.5 : 0.75) : 1 
-                radius:4                    
-            }   
+            width: 50  
             onClicked:{   
-                noteMap.append({all: allOctaves.checked? "All" : "",
-                                noteIn: noteBoxFrom.currentText,
-                                accIn: accidentalBoxFrom.currentText,
-                                octIn: allOctaves.checked? " ": String(octaveBoxFrom.value) ,
-                                enharm: enharmonic.checked? "and enharmonics": "",
-                                noteOut: noteBoxTo.currentText,
-                                accOut:accidentalBoxTo.currentText,
-                                octOut: downBtn.checked? "Down" : upBtn.checked? "Up" :octaveBoxTo.value.toString()  
-                                })
-                                console.log(root.noteIn)
-                                
-                                
-                        
+                noteMap.append({
+                    
+                    all: allOctaves.checked? "All" : "",
+                    noteIn: noteBoxFrom.currentText,
+                    accIn: accidentalBoxFrom.currentText,
+                    octIn: allOctaves.checked? " ": String(octaveBoxFrom.value) ,
+                    enharm: enharmonic.checked? "and enharmonics": "",
+                    noteOut: noteBoxTo.currentText,
+                    accOut:accidentalBoxTo.currentText,
+                    octOut: downBtn.checked? "Down" : upBtn.checked? "Up" :octaveBoxTo.value.toString()  
+                })                
+                console.log(root.noteIn)
             }
         }
-        Button{
+        MyButton{
             id: removeBtn
-            width: 80            
-            hoverEnabled: true 
-            highlighted: hovered  
-        
-            Text {                                      
-                anchors.centerIn: parent                 
-                elide: Text.ElideRight 
-                text: "Remove"               
-                font: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
-                color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white" 
-            }
-            background: Rectangle {                       
-                anchors.fill: parent
-                color: (mscoreMajorVersion >= 4)? ui.theme.buttonColor : "#646464"
-                opacity: removeBtn.hovered ?  (removeBtn.down ? 0.5 : 0.75) : 1 
-                radius:4                    
-            }   
+            width: 80 
+
             onClicked:{
                 console.log("selected", mapList.selectedIdx.length)
                 if(mapList.selectedIdx.length==0){ 

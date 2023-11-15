@@ -882,137 +882,30 @@ MuseScore {
             anchors.fill: parent
 
             TabBar {
-                //color : sysActivePalette
-                hoverEnabled : true
-                id:bar
-                width: parent.width
-                
+                id:bar 
+                width: parent.width                
                 height: parent.height/8
                 currentIndex: 0
-                font.family: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
-                font.pointSize: 10
-                TabButton {
+                
+                MyTabButton {
                     id: rotateTab 
-                    text: "Rotate" 
-                    height: parent.height
-                    contentItem: Text {
-                        text: rotateTab.text
-                        font: bar.font
-                        color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white"
-                        //opacity: rotateTab.checked ? 1 : 0.8
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        elide: Text.ElideRight
-                    }
-                    background: Rectangle {
-                        implicitWidth: parent.width/4
-                        implicitHeight: parent.height
-
-                        //color: rotateTab.hovered ? (rotateTab.checked ? "#2b3744" : "#424244") : "#2d2d30" //"#717171" //(btnClose.down ? "#717171" : "#565656") : "#646464"
-                        color: (mscoreMajorVersion >= 4)? (rotateTab.hovered? ui.theme.buttonColor : ui.theme.backgroundPrimaryColor) : "#2d2d30"
-                         opacity: rotateTab.hovered ? (rotateTab.down ? 1:0.5) : 0.75
-                        // border.color: "#888"
-                        //radius: 4
-        
-                     }    
+                    text: "Rotate"                      
                 }
-                TabButton {
+                MyTabButton {
                     id: reverseTab
-                    text: "Retrograde" 
-                  
-                    height: parent.height 
-                    contentItem: Text {
-                        text: reverseTab.text
-                        font: bar.font
-                        color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white"
-                        //opacity: reverseTab.checked ? 1 : 0.8
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        elide: Text.ElideRight
-                    }
-                    background: Rectangle {
-                        implicitWidth: parent.width/4
-                        implicitHeight: parent.height
-
-                        //color: reverseTab.hovered ? (reverseTab.checked ? "#2b3744" : "#424244") : "#2d2d30" //(btnClose.down ? "#717171" : "#565656") : "#646464"
-                        color: (mscoreMajorVersion >= 4)? (reverseTab.hovered? ui.theme.buttonColor : ui.theme.backgroundPrimaryColor) : "#2d2d30"
-                        opacity: reverseTab.hovered ? (reverseTab.down ? 1:0.5) : 0.75
-                        // border.color: "#888"
-                        //radius: 4
-        
-                     }              
+                    text: "Retrograde"                        
                 }
-                TabButton {
+                MyTabButton {
                     id: invertTab 
-                    text: "Invert"  
-                    height: parent.height
-                    contentItem: Text {
-                        text: invertTab.text
-                        font: bar.font
-                        color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white"
-                        //opacity: invertTab.checked ? 1 : 0.8
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        elide: Text.ElideRight
-                    }
-                    background: Rectangle {
-                        implicitWidth: parent.width/4
-                        implicitHeight: parent.height
-                        
-                        // color: invertTab.hovered ? (invertTab.checked ? "#2b3744" : "#424244") : "#2d2d30" //(btnClose.down ? "#717171" : "#565656") : "#646464"
-                        color: (mscoreMajorVersion >= 4)? (invertTab.hovered? ui.theme.buttonColor : ui.theme.backgroundPrimaryColor) : "#2d2d30"
-                        opacity: invertTab.hovered ? (invertTab.down ? 1:0.5) : 0.75
-                        // border.color: "#888"
-                        //radius: 4
-        
-                     }                            
+                    text: "Invert"                                    
                 }              
-                TabButton {
+                MyTabButton {
                     id: mapTab 
-                    text: "Map Scale"  
-                    height: parent.height
-                    contentItem: Text {
-                        text: mapTab.text
-                        font: bar.font
-                        color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white"
-                        //opacity: mapTab.checked ? 1 : 0.8
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        elide: Text.ElideRight
-                    }
-                    background: Rectangle {
-                        implicitWidth: parent.width/4
-                        implicitHeight: parent.height
-
-                        color: (mscoreMajorVersion >= 4)? (mapTab.hovered? ui.theme.buttonColor : ui.theme.backgroundPrimaryColor) : "#2d2d30"
-                        opacity: mapTab.hovered ? (mapTab.down ? 1:0.5) : 0.75
-                        //radius: 4
-        
-                    }                                 
+                    text: "Map Scale"                                        
                 }
-
-                TabButton {
+                MyTabButton {
                     id: mapPitchTab 
-                    text: "Map Pitch"  
-                    height: parent.height
-                    contentItem: Text {
-                        text: mapPitchTab.text
-                        font: bar.font
-                        color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white"
-                        //opacity: mapTab.checked ? 1 : 0.8
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        elide: Text.ElideRight
-                    }
-                    background: Rectangle {
-                        implicitWidth: parent.width/4
-                        implicitHeight: parent.height
-
-                        color: (mscoreMajorVersion >= 4)? (mapPitchTab.hovered? ui.theme.buttonColor : ui.theme.backgroundPrimaryColor) : "#2d2d30"
-                        opacity: mapPitchTab.hovered ? (mapPitchTab.down ? 1:0.5) : 0.75
-                        //radius: 4
-        
-                    }                                 
+                    text: "Map Pitch"                                           
                 }
             }
             Rectangle {
@@ -1032,8 +925,8 @@ MuseScore {
                     onActivated: {
                     //focus next tab
                     bar.currentIndex = (bar.currentIndex + 1)%4
-                }
-            }   
+                    }
+                }   
             }    
         
             
@@ -1045,14 +938,12 @@ MuseScore {
                 anchors.topMargin:20
                 ButtonGroup {id: rotateOptions}
 
-                MyRadioButton {
-                    //color: sysActivePalette.text
+                MyRadioButton {                    
                     id: rotatePitchesBox
                     ButtonGroup.group: rotateOptions
                     text: "Rotate Pitches" 
                 }
-                MyRadioButton {
-                    //color: sysActivePalette
+                MyRadioButton {                    
                     id: rotateRhythmBox
                     ButtonGroup.group: rotateOptions
                     text: qsTr("Rotate Rhythm")
@@ -1063,16 +954,14 @@ MuseScore {
                     text: qsTr("Rotate Pitches and Rhythm")
                 }
             
-                Row{
-                    //x: 30
+                Row{                   
                     anchors.top: rotateBothBox.bottom
                     anchors.topMargin: 15
                     Label {
-                        text: "Select number of steps by which to rotate: "
-                        //color: sysActivePalette.text//"#333"   
+                        id: stepBoxText
+                        text: "Select number of steps by which to rotate: "                         
                         font.family: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
                         font.pointSize: 10        
-                        id: stepBoxText
                         color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor :  "white"
                     }
             
@@ -1136,8 +1025,7 @@ MuseScore {
             ColumnLayout{  
                 enabled: invertTab.checked
                 visible: invertTab.checked
-                ButtonGroup {id: invertOptions}
-                //anchors.topMargin: 20
+                ButtonGroup {id: invertOptions}                
                 anchors.top: bar.bottom
                 anchors.topMargin: 20
                 anchors.left: parent.left
@@ -1161,8 +1049,7 @@ MuseScore {
                 }
                 Row{                
                     enabled: invertByPitch.checked
-                    visible: invertByPitch.checked
-                    //x: 30
+                    visible: invertByPitch.checked                    
                     anchors.left: invertByPitch.right
                     anchors.verticalCenter: invertByPitch.verticalCenter
                     anchors.leftMargin: 20
@@ -1336,45 +1223,16 @@ MuseScore {
 
 
             RowLayout {         
-                anchors.bottom: parent.bottom
-                anchors.bottomMargin: 10                     
-                anchors.right: parent.right
-                anchors.rightMargin: 10
                 spacing: 5          
-                
-                Button {                 
-                    id: btnApply
-                    hoverEnabled: true
-                    highlighted: clicked
-                    text: qsTr("Apply")  
-                    contentItem: Text {
-                        text: btnApply.text
-                        font: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
-                        color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white"
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        elide: Text.ElideRight
-                    }                    
-                    background: Rectangle {
-                        implicitWidth: 100
-                        implicitHeight: 25
-                        // color: btnApply.hovered ?  (btnApply.down ? "#2093fe" : "#265f97") : "#277eb9"
-                        color: (mscoreMajorVersion >= 4)? ui.theme.accentColor : "#277eb9"
-                        opacity: btnApply.hovered ?  (btnApply.down ? 1:0.5) : 0.75
-                        // border.color: "#888"
-                        radius: 4
-        
-                     }                   
-                    onClicked: {
-
-                        // if ( (rotateTab.checked && !rotatePitchesBox.checked && !rotateRhythmBox.checked && !rotateBothBox.checked ) ||
-                        //     (reverseTab.checked && !reversePitchesBox.checked && !reverseRhythmBox.checked && !reverseBothBox.checked) ||
-                        //     (invertTab.checked && !invertByPitch.checked && !invertByOutermostPitchesBox.checked) ||
-                        //     (mapTab.checked && mainMenu.modeNumber[1]==null) ||
-                        //     (!mapPitchTab.checked) ){
-                        //     errorDialog.text="Please select an option to perform a transformation."
-                        //     errorDialog.open()
-                        // }
+                anchors{
+                    bottom: parent.bottom
+                    right: parent.right
+                    margins: 10                     
+                }     
+                MyButton {   
+                    text: qsTr("Apply")
+                    accented: true
+                    onClicked: {                       
                         var cursor=curScore.newCursor()
                         cursor.rewind(1)
                         if (!cursor.segment) {
@@ -1386,38 +1244,12 @@ MuseScore {
                         }
                     }      
                 }
-            
-
-
-                Button {
-                    
-                    id:  btnClose
-                    hoverEnabled: true
-                    highlighted: clicked
-                    text: qsTr("Close")
-                    contentItem: Text {
-                        text: btnClose.text
-                        font: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
-                        color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white"
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        elide: Text.ElideRight
-                    }                    
-                    background: Rectangle {
-                        implicitWidth: 100
-                        implicitHeight: 25
-                        color: (mscoreMajorVersion >= 4)? ui.theme.buttonColor : "#646464"
-                        opacity: btnClose.hovered ?  (btnClose.down ? 1 : 0.5) : 0.75
-                        // border.color: "#888"
-                        radius: 4
-        
-                     }                  
-                    onClicked: {
-                        //window.close();
-                        mainWindow.parent.Window.window.close() 
-                    }
+                MyButton {
+                    text: qsTr("Close")                         
+                    onClicked: mainWindow.parent.Window.window.close()                     
                 }        
             }
+
             //  Item{
             //     id: escapeItem
             //     focus: true
