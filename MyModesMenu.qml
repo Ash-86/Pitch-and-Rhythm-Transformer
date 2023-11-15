@@ -7,7 +7,7 @@ Item{
     property var modeFamily:0
     property var mockValue:0    
     property var modeNumber:[null,null]
-    height: parent.height
+    
     //Layout.preferredHeight: parent.height  
 
     MyButton {
@@ -19,7 +19,7 @@ Item{
 
         indicator: Canvas {
             x: toolButton.width - width   -10                                                      
-            y:toolButton.topPadding + (toolButton.availableHeight - height) / 2
+            y: toolButton.topPadding + (toolButton.availableHeight - height) / 2
             width: 8
             height: 5
             contextType: "2d"
