@@ -211,7 +211,13 @@ MuseScore {
                 var transposedScale=transpose(scale,pivot.pitch-modeDistance ) // ,curScore.keysig)
                 console.log("transpsed scale:", transposedScale.pitch, transposedScale.tpc1 ) 
                 var Map= getScaleMap(transposedScale) 
-                performMapping(Map) 
+                if (mapScaleBtn.checked){
+                    performMapping(Map) 
+                }
+                if (colorNotesBtn.checked){
+                    cursor.rewindToTick(startTick)
+                    colorNotes(Map)
+                }
                 //console.log("Map: ",Map.pitch, Map.tpc1)
                 // var oldMap= getDiatonicMap()
                 // console.log("old diatonicMap", oldMap.pitch,   oldMap.tpc1 )
@@ -763,6 +769,28 @@ MuseScore {
             cursor.next()              
             }                
         }///end performMapping
+
+        function colorNotes(Map){
+            while (cursor.segment != null && cursor.tick < endTick) {
+                var el=cursor.element              
+                if (el.type == Element.CHORD) {                     
+                    for ( var n=0; n<el.notes.length; n++){
+                        if (!Map.pitch.some(function(x){return x==el.notes[n].pitch})){
+                            el.notes[n].color="#e21c48"
+                            if (el.notes[n].accidental)  el.notes[n].accidental.color="#e21c48"
+                            if (el.notes[n].dots){
+                                for (var i = 0; i < note.dots.length; i++) {
+                                    if (el.notes[n].dots[i]) {                                                                             
+                                        el.notes[n].dots[i].color="#e21c48" 
+                                    }                                       
+                                }
+                            } 
+                        }
+                    }
+                }
+                cursor.next()
+            }
+        }
         //////////////////////////// end Mapping Functions ////////////////////////////
         
         function mapPitch(){ 
@@ -1199,6 +1227,20 @@ MuseScore {
                     anchors.leftMargin: 5                    
                 }
             }// Row
+            Row{
+                spacing: 5
+                MyButton{
+                    id: colorNotesBtn
+                    text: qsTr("Color non-scale notes")
+                    checkable: true   
+                }
+                MyButton{
+                    id: mapScaleBtn
+                    text: qsTr("Map notes to scale")
+                    checkable: true   
+                }
+            }
+
         }/// ColumnLayout
         ////////////// end Map Tab //////////////////////////////
 
