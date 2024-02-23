@@ -136,8 +136,15 @@ MuseScore {
        
         curScore.startCmd()
 
-        for (var track=startTrack; track<endTrack; track++){ 
-            cursor.track=track
+        var els = curScore.selection.elements 
+        var tracks=[]
+        for (var i in els){             
+            if ( !tracks.some(function(x){return x==els[i].track}) ){
+                tracks.push(els[i].track)
+            }
+        }
+        for (var i=0; i<tracks.length; i++){         
+            cursor.track=tracks[i]
             cursor.rewindToTick(startTick)
             if(!cursor.element){ //check if voice exists
                continue
