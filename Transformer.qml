@@ -64,9 +64,9 @@ MuseScore {
         /////// Get Selection //////////////////////////
         cursor.rewind(2); // go to the end of the selection
 		var endTick = cursor.tick;
-		// if (endTick == 0) { // dealing with some bug when selecting to end.
-   		// 	var endTick = score.lastSegment.tick + 1;
-		// }
+		if (endTick == 0) { // dealing with some bug when selecting to end.
+   		    var endTick = curScore.lastSegment.tick+1  ;
+		}
 		var endStaff = cursor.staffIdx +1;
         var endTrack = endStaff * 4;
 		//start		
