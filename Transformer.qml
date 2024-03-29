@@ -163,15 +163,20 @@ MuseScore {
                     var Pitches= rotateArray(onlyPitches,step) 
                     editPitches(Pitches)                    
                 }
-                if (rotateRhythmBox.checked){
+                else if (rotateRhythmBox.checked){
                     var Rhythm= rotateArray(Rhythm,step)
                     reWrite(Pitches,Rhythm)
                 }
-                if (rotateBothBox.checked){
+                else if (rotateBothBox.checked){
                     var Pitches=rotateArray(Pitches,step)
                     var Rhythm= rotateArray(Rhythm,step)
                     reWrite(Pitches,Rhythm)
                 }
+                else  {
+                    errorDialog.text="Please select an option."            
+                    errorDialog.open() 
+                    return
+                }  
             }
             if (reverseTab.checked){
                 var arrays= getArrays()
@@ -183,15 +188,20 @@ MuseScore {
                     var onlyPitches= onlyPitches.reverse()
                     editPitches(onlyPitches)
                 }
-                if (reverseRhythmBox.checked){
+                else if (reverseRhythmBox.checked){
                     var Rhythm=Rhythm.reverse()
                     reWrite(Pitches,Rhythm)
                 }
-                if (reverseBothBox.checked){
+                else if (reverseBothBox.checked){
                     var Pitches= Pitches.reverse()
                     var Rhythm=Rhythm.reverse()
                     reWrite(Pitches,Rhythm)
                 }
+                else  {
+                    errorDialog.text="Please select an option."            
+                    errorDialog.open() 
+                    return
+                }  
             }
             if(invertTab.checked){
                 if (invertByPitch.checked){
@@ -202,12 +212,17 @@ MuseScore {
                     var pivot= getPivot(noteValue,accidental, octave)
                     invert(pivot, invertType.position)
                 }
-                if (invertByOutermostPitchesBox.checked){
+                else if (invertByOutermostPitchesBox.checked){
                     var arrays = getArrays()
                     var Hnote= arrays.Hnote
                     var Lnote= arrays.Lnote
                     invertUsingOutermostPitches(invertType.position)
                 }
+                else  {
+                    errorDialog.text="Please select an option."            
+                    errorDialog.open() 
+                    return
+                }  
             }
             if (mapTab.checked && mainMenu.modeNumber[1]!=null){
                 var notename=noteBoxMap.currentText
@@ -223,13 +238,23 @@ MuseScore {
                 if (mapScaleBtn.checked){
                     performMapping(Map) 
                 }
-                if (colorNotesBtn.checked){
+                else if (colorNotesBtn.checked){
                     cursor.rewindToTick(startTick)
                     colorNotes(Map)
                 }
+                else  {
+                    errorDialog.text="Please select an option."            
+                    errorDialog.open() 
+                    return
+                }  
                 //console.log("Map: ",Map.pitch, Map.tpc1)
                 // var oldMap= getDiatonicMap()
                 // console.log("old diatonicMap", oldMap.pitch,   oldMap.tpc1 )
+            }
+            else{
+                errorDialog.text="Please choose a scale."            
+                    errorDialog.open() 
+                    return
             }
             if(mapPitchTab.checked){
                 mapPitch()
