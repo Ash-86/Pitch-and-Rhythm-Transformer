@@ -138,7 +138,9 @@ MuseScore {
 
         var els = curScore.selection.elements 
         var tracks=[]
-        for (var i in els){             
+        var notesExist=false
+        for (var i in els){ 
+            if (els[i].type == 20) {notesExist=true}  //20 is note type number            
             if ( !tracks.some(function(x){return x==els[i].track}) ){
                 tracks.push(els[i].track)
             }
@@ -297,7 +299,7 @@ MuseScore {
                 
                 cursor.next();
             }
-            if (!onlyPitches.length) {
+            if (!onlyPitches.length & !notesExist) {
                 errorDialog.text="Selection empty. No changes made!"            
                 errorDialog.open()                       
                 return     
