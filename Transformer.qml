@@ -224,7 +224,12 @@ MuseScore {
                     return
                 }  
             }
-            if (mapTab.checked && mainMenu.modeNumber[1]!=null){
+            if (mapTab.checked){
+                if ( mainMenu.modeNumber[1]==null) {
+                    errorDialog.text="Please choose a scale."            
+                    errorDialog.open() 
+                    return
+                }  
                 var notename=noteBoxMap.currentText
                 var noteacc=accidentalBoxMap.currentText
                 var pivot= getPivot(notename,noteacc,-1)
@@ -251,11 +256,7 @@ MuseScore {
                 // var oldMap= getDiatonicMap()
                 // console.log("old diatonicMap", oldMap.pitch,   oldMap.tpc1 )
             }
-            else{
-                errorDialog.text="Please choose a scale."            
-                    errorDialog.open() 
-                    return
-            }
+            
             if(mapPitchTab.checked){
                 mapPitch()
             }
