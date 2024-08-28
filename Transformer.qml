@@ -22,7 +22,7 @@ import QtQuick 2.9
 import QtQuick.Controls 2.2
 import QtQuick.Window 2.2
 import QtQuick.Layouts 1.3
-import QtQuick.Dialogs 1.2
+//import QtQuick.Dialogs 2.15
 import MuseScore 3.0
 
 MuseScore {
@@ -32,7 +32,11 @@ MuseScore {
     pluginType: "dialog"
 
     id: mainWindow
-    
+
+    //4.4 title: "Transform Pitches and Rhythm"
+    //4.4 thumbnailName: "Transformer.jpg"
+    //4.4 categoryCode: "Composition"
+
     Component.onCompleted: {
         if (mscoreMajorVersion >= 4) {
             mainWindow.title = "Transform Pitches and Rhythm"
@@ -57,7 +61,7 @@ MuseScore {
         cursor.rewind(1)
         if (!cursor.segment) {
             errorDialog.text="No valid range selection on current score!"            
-            errorDialog.open() 
+            errorDialog.show() 
             return
         }  
 
@@ -174,7 +178,7 @@ MuseScore {
                 }
                 else  {
                     errorDialog.text="Please select an option."            
-                    errorDialog.open() 
+                    errorDialog.show() 
                     return
                 }  
             }
@@ -199,7 +203,7 @@ MuseScore {
                 }
                 else  {
                     errorDialog.text="Please select an option."            
-                    errorDialog.open() 
+                    errorDialog.show() 
                     return
                 }  
             }
@@ -220,14 +224,14 @@ MuseScore {
                 }
                 else  {
                     errorDialog.text="Please select an option."            
-                    errorDialog.open() 
+                    errorDialog.show() 
                     return
                 }  
             }
             if (mapTab.checked){
                 if ( mainMenu.modeNumber[1]==null) {
                     errorDialog.text="Please choose a scale."            
-                    errorDialog.open() 
+                    errorDialog.show() 
                     return
                 }  
                 var notename=noteBoxMap.currentText
@@ -249,7 +253,7 @@ MuseScore {
                 }
                 else  {
                     errorDialog.text="Please select an option."            
-                    errorDialog.open() 
+                    errorDialog.show() 
                     return
                 }  
                 //console.log("Map: ",Map.pitch, Map.tpc1)
@@ -327,7 +331,7 @@ MuseScore {
             }
             if (!onlyPitches.length & !notesExist) {
                 errorDialog.text="Selection empty. No changes made!"            
-                errorDialog.open()                       
+                errorDialog.show()                       
                 return     
             }   
             var arrays={
@@ -448,7 +452,8 @@ MuseScore {
                         }
                     }
                 }                
-            } // end for      
+            } // end for     
+            curScore.selection.selectRange(startTick, endTick, startStaff, endStaff); 
         }//end function        
 
                 
@@ -919,13 +924,45 @@ MuseScore {
 
 
     ////////////////////////////////////////////////////////
-    MessageDialog {
+    // MessageDialog {
+    //     id: errorDialog
+    //     icon: StandardIcon.Information
+    //     standardButtons: StandardButton.Ok
+    //     title: qsTr('Warning')
+    //     text: ""
+    // }   
+
+    ApplicationWindow {
         id: errorDialog
-        icon: StandardIcon.Information
-        standardButtons: StandardButton.Ok
-        title: qsTr('Warning')
-        text: ""
-    }    
+        title: "WARNING!"
+        visible: false
+        flags: Qt.Dialog | Qt.WindowStaysOnTopHint
+        // Qt.WindowStaysOnTopHint => dialog always on top
+        // Qt.FramelessWindowHint  => dialog without title bar
+        width: 320
+        height: 100        
+        property var text: ""
+        
+        Label {
+            text: errorDialog.text
+            //font: ui.theme.bodyFont
+            anchors{
+                top: parent.top 
+                horizontalCenter: parent.horizontalCenter                
+                margins:20 
+            } 
+        }
+        MyButton {            
+            accented: true
+            text: "Ok!"
+            anchors{
+                horizontalCenter: parent.horizontalCenter
+                bottom: parent.bottom
+                margins: 10
+            }             
+            onClicked: errorDialog.close()            
+        }        
+    } 
     
     Rectangle {
         id : window        
