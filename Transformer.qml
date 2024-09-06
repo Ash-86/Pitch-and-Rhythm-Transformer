@@ -222,6 +222,15 @@ MuseScore {
                     var Lnote= arrays.Lnote
                     invertUsingOutermostPitches(invertType.position)
                 }
+                else if (invertByNegativeHarmony.checked){   
+                    var arrays = getArrays()
+                    var meanOctave= Math.floor((arrays.Hnote.pitch + arrays.Lnote.pitch) / 2 / 12) -1                               
+                    var Ln= negativeHarmony.lnote
+                    var Hn= negativeHarmony.hnote
+                    var Lnote= getPivot(Ln[0], Ln[1], meanOctave)
+                    var Hnote= getPivot(Hn[0], Hn[1], meanOctave) 
+                    invertUsingOutermostPitches(invertType.position)
+                }
                 else  {
                     errorDialog.text="Please select an option."            
                     errorDialog.show() 
@@ -734,6 +743,7 @@ MuseScore {
             }
         }    
 
+
         //////////////////// Mapping Functions ///////////////////////////
         function transpose(scale, interval){
 
@@ -1140,6 +1150,11 @@ MuseScore {
                 ButtonGroup.group: invertOptions
                 text: qsTr("Specific Pitch:")                        
             }
+            MyRadioButton {
+                id: invertByNegativeHarmony
+                ButtonGroup.group: invertOptions
+                text: qsTr("Axis (Negative Harmony):")                        
+            }
             Row{                
                 enabled: invertByPitch.checked
                 visible: invertByPitch.checked                    
@@ -1197,13 +1212,29 @@ MuseScore {
                     //     border.color: (mscoreMajorVersion >= 4)? ui.theme.strokeColor : "grey"
                     //     radius: 4                           
                     // }                                 
-                }  
-            }//row   
+                }                  
+            }//row  
+
+
+            Row {  
+                enabled: invertByNegativeHarmony.checked
+                visible: invertByNegativeHarmony.checked 
+                anchors{
+                    left: invertByPitch.right
+                    verticalCenter: invertByPitch.verticalCenter
+                    leftMargin: 35
+                }             
+                MyCircle{
+                    id: negativeHarmony
+                    
+                } 
+            }  
+
             Row {  
                 anchors{
-                    top: invertByPitch.bottom
+                    top: invertByNegativeHarmony.bottom
                     left: parent.left
-                    margins: 20
+                    margins: 15
                 }                          
                 
                 Label{ 
@@ -1244,7 +1275,7 @@ MuseScore {
                     font.family: (mscoreMajorVersion >= 4)? ui.theme.bodyFont.family : "segoe UI" 
                     color: (mscoreMajorVersion >= 4)? ui.theme.fontPrimaryColor : "white"
                 }     
-            }       
+            }                
         }                     
         
         /////////////////// Map Tab //////////////////
