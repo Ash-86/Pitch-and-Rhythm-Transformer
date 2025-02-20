@@ -21,16 +21,15 @@ Item {
       property var centerRadius: (outRadius+innRadius)/2 
       property var cx: width / 2   // center x 
       property var cy: height / 2   // center y 
-      
+      property var angle: 2 * Math.PI / 12
+
       function drawAxis(index, hovered, selectedNotes, down) {
-         if (hovered || selectedNotes){
-            var total=6 //number of slices
-            var ctx = canvas.getContext("2d")
-            var angle = (index * 2 * Math.PI) / 12
-            var startX = cx - (outRadius) * Math.cos(angle)
-            var startY = cy - (outRadius) * Math.sin(angle)
-            var endX = cx + (outRadius) * Math.cos(angle)
-            var endY = cy + (outRadius) * Math.sin(angle)
+         if (hovered || selectedNotes){            
+            var ctx = canvas.getContext("2d")            
+            var startX = cx - (outRadius) * Math.cos(angle * index)
+            var startY = cy - (outRadius) * Math.sin(angle * index)
+            var endX = cx + (outRadius) * Math.cos(angle * index)
+            var endY = cy + (outRadius) * Math.sin(angle * index)
 
             ctx.strokeStyle = down? ui.theme.backgroundSecondaryColor : (selectedNotes? ui.theme.accentColor : ui.theme.buttonColor)  // 
             ctx.lineWidth = hovered ? 2 : 2
@@ -54,8 +53,7 @@ Item {
          property var sum:0
          
          onPositionChanged: {
-            var ctx = canvas.getContext("2d")
-            var angle = 2 * Math.PI / 12 // the angle of each slice            
+            var ctx = canvas.getContext("2d")                      
             
             // Get the mouse position relative to the center of the pizza
             var dx = mouseX - canvas.cx
@@ -72,7 +70,7 @@ Item {
             // Check if the mouse is inside the pizza circle
             if (distance < canvas.centerRadius) {
                // Find the index of the slice that contains the mouse position
-               index = Math.floor((mouseAngle + 2*Math.PI/24) / (angle))  %12                   
+               index = Math.floor((mouseAngle + canvas.angle/2) / (canvas.angle))  %12                   
             }
             else{
                index=-1               
@@ -135,8 +133,8 @@ Item {
       model: ["C", "G", "D", "A", "E", "B", "F♯/G♭", "D♭", "A♭", "E♭", "B♭", "F"]
       delegate: Item {
          property var n: (index + 9 ) % 12
-         x: parent.width/2 + Math.cos(2*Math.PI*n/12 + Math.PI/12 )*canvas.centerRadius
-         y: parent.height/2 + Math.sin(2*Math.PI*n/12 + Math.PI/12)*canvas.centerRadius 
+         x: parent.width/2 + Math.cos(n*canvas.angle + canvas.angle/2 )*canvas.centerRadius
+         y: parent.height/2 + Math.sin(n*canvas.angle + canvas.angle/2)*canvas.centerRadius 
          StyledTextLabel {
             anchors.centerIn: parent
             text: modelData  
