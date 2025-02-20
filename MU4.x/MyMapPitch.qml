@@ -1,7 +1,7 @@
-import QtQuick 2.9
-import QtQuick.Controls 2.2
-import QtQuick.Layouts 1.3
-import Muse.UiComponents 1.0 
+import QtQuick 
+import QtQuick.Controls 
+import QtQuick.Layouts 
+import Muse.UiComponents 
 
 Item {  
     id:root 

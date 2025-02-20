@@ -18,44 +18,25 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>. 
 =========================================================================*/
 
-import QtQuick 2.9
-import QtQuick.Controls 2.2
-import QtQuick.Window 2.2
-import QtQuick.Layouts 1.3
-//import QtQuick.Dialogs 2.15
-import Muse.UiComponents 1.0 
+import QtQuick 
+import QtQuick.Controls 
+import QtQuick.Layouts 
+import Muse.UiComponents 
 import MuseScore 3.0
 
 MuseScore {
-    menuPath: "Plugins.Pitch and Rhythm Transformer"
-    description: "Rotate, reverse, or invert pitches, rhythm, or both"
+    id: root
+    title: "Transform Pitches and Rhythm"
+    description: "Map, rotate, reverse or invert pitches and/or rhythm"
     version: "2"
     pluginType: "dialog"
+    thumbnailName : "Transformer.jpg"
 
-    id: root
+    width: 450
+    height: 280
+
     property var menuParentScale:null;
     property var menuModeIndex:null;
-    //4.4 title: "Transform Pitches and Rhythm"
-    //4.4 thumbnailName: "Transformer.jpg"
-    
-
-    Component.onCompleted: {
-        if (mscoreMajorVersion >= 4) {
-            root.title = "Transform Pitches and Rhythm"
-            root.thumbnailName = "Transformer.jpg"
-            
-            root.width=450
-            root.height=280
-        } else {
-            root.width=550
-            root.height=350
-        }
-    }    
-        
-    onRun: {
-        //window.visible = true            
-    }
-
     
     function applyTransform(){        
         
