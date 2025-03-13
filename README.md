@@ -41,5 +41,5 @@ A MuseScore 3.x/4.x plugin that performs several rhythm and pitch transformation
 
  ## Support 
  Making this plugin took time, effort and love.   
- If you appreciate this plugin and find it helpful, you can buy me a beer 
+ If you appreciate this plugin and find it helpful, show me some love by giving it a star. If you like, you can also buy me a beer 
  [here](https://www.paypal.com/donate/?hosted_button_id=BH676KMHGVHC8) :)
