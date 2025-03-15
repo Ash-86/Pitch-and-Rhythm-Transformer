@@ -35,13 +35,13 @@ MuseScore {
 
     //4.4 title: "Transform Pitches and Rhythm"
     //4.4 thumbnailName: "Transformer.jpg"
-    //4.4 categoryCode: "Composition"
+    //4.4 categoryCode: ""
 
     Component.onCompleted: {
         if (mscoreMajorVersion >= 4) {
             mainWindow.title = "Transform Pitches and Rhythm"
             mainWindow.thumbnailName = "Transformer.jpg"
-            mainWindow.categoryCode = "Composition"
+            mainWindow.categoryCode = ""
             mainWindow.width=370
             mainWindow.height=250
         } else {

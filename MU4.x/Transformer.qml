@@ -31,6 +31,7 @@ MuseScore {
     version: "2"
     pluginType: "dialog"
     thumbnailName : "Transformer.jpg"
+    categoryCode: ""
 
     width: 450
     height: 280
