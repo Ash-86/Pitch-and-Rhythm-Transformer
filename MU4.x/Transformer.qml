@@ -1213,65 +1213,72 @@ MuseScore {
                 FlatButtonMenuIndicatorTriangle{}
                 id: menuButton
                 text: "select mode"
+                property var items: []
+                onClicked: {
+                    menuButton.items = [
+                        {id: "0", title: "Major Modes", subitems:
+                            [
+                                { id: "0", title: "Ionian" },
+                                { id: "1", title: "Dorian" },
+                                { id: "2", title: "Phrygian" },
+                                { id: "3", title: "Lydian" },
+                                { id: "4", title: "Mixolydian" },
+                                { id: "5", title: "Aeolian" },
+                                { id: "6", title: "Locrian" }
+                            ]
+                        },
+                        {id: "1", title: "Melodic Minor Modes", subitems:
+                            [
+                                { id: "7", title: "Melodic Minor" },
+                                { id: "8", title: "Dorian♭2 (Phrygian ♯6)" },
+                                { id: "9", title: "Lydian augmented" },
+                                { id: "10", title: "Lydian♭7" },
+                                { id: "11", title: "Mixolydian♭6" },
+                                { id: "12", title: "Locrian ♯2 (Aeolian♭5)" },
+                                { id: "13", title: "Altered scale" }
+                            ]
+                        },
+                        {id: "2", title: "Harmonic Minor Modes", subitems:
+                            [
+                                { id: "14", title: "Harmonic Minor" },
+                                { id: "15", title: "Locrian ♮6" },
+                                { id: "16", title: "Ionian ♯5" },
+                                { id: "17", title: "Dorian ♯4" },
+                                { id: "18", title: "Mixolydian ♭9" },
+                                { id: "19", title: "Lydian ♯2" },
+                                { id: "20", title: "Altered scale ♭♭7" }
+                            ]
+                        },
+                        {id: "3", title: "Other", subitems:
+                            [
+                                { id: "21", title: "Harmonic Major" },
+                                { id: "22", title: "Double Harmonic" },
+                                { id: "23", title: "Half-Whole" },
+                                { id: "24", title: "Whole-Half" },
+                                { id: "25", title: "Whole Tone" },
+                                { id: "26", title: "Major Pentatonic" },
+                                { id: "27", title: "Minor Pentatonic" }
+                            ]
+                        }
+                    ]
+                    menuLoader.toggleOpened(items)
+                }
 
-                onClicked: menu.open()
+                StyledMenuLoader {
+                    id: menuLoader
 
-                Menu {
-                    id: menu
-                    Menu {
-                        title: "Major Modes"
-                        Repeater {
-                            model: ["Ionian", "Dorian", "Phrygian", "Lydian", "Mixolydian", "Eolian", "Locrian"]
-                            delegate: MenuItem {
-                                text: modelData
-                                onTriggered: {
-                                    menuButton.text = text
-                                    menuModeIndex = index
-                                    menuParentScale= "Major Modes"
-                                }
-                            }
-                        }
-                    }
-                    Menu {
-                        title: "Melodic Minor Modes"
-                        Repeater{
-                            model: ["Melodic Minor", "Dorian♭2  (Phrygian ♯6)", "Lydian augmented", "Lydian♭7", "Mixolydian♭6", "Locrian ♯2 (Aeolian♭5)", "Altered scale"]
-                            delegate: MenuItem {
-                                text: modelData
-                                onTriggered: {
-                                    menuButton.text = text
-                                    menuModeIndex = index
-                                    menuParentScale= "Melodic Minor Modes"
-                                }
-                            }
-                        }
-                    }
-                    Menu {
-                        title: "Harmonic Minor Modes"
-                        Repeater {
-                            model: ["Harmonic Minor", "Locrian ♮6", "Ionian ♯5", "Dorian ♯4", "Mixolydian ♭9", "Lydian ♯2", "Altered scale ♭♭7"]
-                            delegate: MenuItem {
-                                text: modelData
-                                onTriggered: {
-                                    menuButton.text = text
-                                    menuModeIndex = index
-                                    menuParentScale= "Harmonic Minor Modes"
-                                }
-                            }
-                        }
-                    }
-                    Menu {
-                        title: "Other"
-                        Repeater {
-                            model: ["Harmonic Major", "Double Harmonic", "Half-Whole", "Whole-Half", "Whole Tone", "Major Pentatonic", "Minor Pentatonic"]
-                            delegate: MenuItem {
-                                text: modelData
-                                onTriggered: {
-                                    menuButton.text = text
-                                    menuModeIndex = 0
-                                    menuParentScale= text
-                                }
-                            }
+                    onHandleMenuItem: function(itemId) {
+                        var modeIndex = parseInt(itemId) % 7
+                        var groupIndex = Math.floor(parseInt(itemId) / 7)
+                        console.log(menuButton.items[groupIndex].subitems[modeIndex].title)
+                        menuButton.text = menuButton.items[groupIndex].subitems[modeIndex].title
+                        if (groupIndex == 3) {
+                            menuModeIndex = 0
+                            menuParentScale = menuButton.items[groupIndex].subitems[modeIndex].title
+
+                        } else {
+                            menuModeIndex = itemId % 7
+                            menuParentScale = menuButton.items[groupIndex].title
                         }
                     }
                 }
