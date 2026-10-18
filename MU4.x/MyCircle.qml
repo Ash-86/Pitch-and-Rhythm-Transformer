@@ -1,146 +1,86 @@
-import QtQuick 
-import QtQuick.Controls 
+import QtQuick
 import Muse.UiComponents
 import Muse.Ui
-      
-Item {   
-   id: root
-   width: 180
-   height: 180
-   property var lnote: null
-   property var hnote: null
-   property var cycleOfFifths:["D♮","A♮","E♮","B♮","F♯","D♭","A♭","E♭","B♭","F♮","C♮","G♮"]
-   
-   Canvas {
-      id: canvas
-      width: 180
-      height: 180 
-      
-      property var outRadius : (width) / 2 
-      property var innRadius: outRadius-30
-      property var centerRadius: (outRadius+innRadius)/2 
-      property var cx: width / 2   // center x 
-      property var cy: height / 2   // center y 
-      property var angle: 2 * Math.PI / 12
 
-      function drawAxis(index, hovered, selectedNotes, down) {
-         if (hovered || selectedNotes){            
-            var ctx = canvas.getContext("2d")            
-            var startX = cx - (outRadius) * Math.cos(angle * index)
-            var startY = cy - (outRadius) * Math.sin(angle * index)
-            var endX = cx + (outRadius) * Math.cos(angle * index)
-            var endY = cy + (outRadius) * Math.sin(angle * index)
+Item {
+    id: root
+    implicitWidth: 180
+    implicitHeight: 180
 
-            ctx.strokeStyle = down? ui.theme.backgroundSecondaryColor : (selectedNotes? ui.theme.accentColor : ui.theme.buttonColor)  // 
-            ctx.lineWidth = hovered ? 2 : 2
+    // axis i lies between the circle-of-fifths neighbours cycleOfFifths[i] and cycleOfFifths[i + 1]
+    readonly property var cycleOfFifths: ["D♮","A♮","E♮","B♮","F♯","D♭","A♭","E♭","B♭","F♮","C♮","G♮"]
+    property int selected: 10 // default axis: C–G
+    readonly property string lnote: cycleOfFifths[selected]
+    readonly property string hnote: cycleOfFifths[(selected + 1) % 12]
+
+    property int hovered: -1
+    property bool pressed: false
+
+    readonly property real angle: 2 * Math.PI / 12
+    readonly property real outR: Math.min(width, height) / 2
+    readonly property real centerR: outR - 15 // middle of the 30px label ring
+
+    onSelectedChanged: canvas.requestPaint()
+    onHoveredChanged: canvas.requestPaint()
+    onPressedChanged: canvas.requestPaint()
+
+    Canvas {
+        id: canvas
+        anchors.fill: parent
+
+        function drawAxis(i, color) {
+            var ctx = getContext("2d")
+            var dx = root.outR * Math.cos(root.angle * i)
+            var dy = root.outR * Math.sin(root.angle * i)
+            ctx.strokeStyle = color
+            ctx.lineWidth = 2
             ctx.beginPath()
-            ctx.moveTo(startX, startY)
-            ctx.lineTo(endX, endY)
+            ctx.moveTo(width / 2 - dx, height / 2 - dy)
+            ctx.lineTo(width / 2 + dx, height / 2 + dy)
             ctx.stroke()
-            ctx.closePath()
-         }         
-      } 
+        }
 
-      MouseArea {
-         id: mouseArea
-         anchors.fill: parent
-         hoverEnabled: true
-         
-         property int hoveredIndex:-1 // store the index of the hovered slice
-         property int index
-         property var down: false
-         property var selectedNotes:[0,0,0,0,0,0,0,0,0,0,0,0] 
-         property var sum:0
-         
-         onPositionChanged: {
-            var ctx = canvas.getContext("2d")                      
-            
-            // Get the mouse position relative to the center of the pizza
-            var dx = mouseX - canvas.cx
-            var dy = mouseY - canvas.cy
+        onPaint: {
+            getContext("2d").clearRect(0, 0, width, height)
+            drawAxis(root.selected, ui.theme.accentColor)
+            if (root.hovered >= 0)
+                drawAxis(root.hovered, root.pressed ? ui.theme.backgroundSecondaryColor
+                                                    : (root.hovered === root.selected ? ui.theme.accentColor : ui.theme.buttonColor))
+        }
 
-            // Get the distance and angle from the center of the pizza
-            var distance = Math.sqrt(dx * dx + dy * dy)
-            var mouseAngle = Math.atan2(dy, dx)
+        MouseArea {
+            anchors.fill: parent
+            hoverEnabled: true
 
-            // Normalize the mouse angle to [0, 2 * Math.PI)
-            if (mouseAngle < 0) {
-               mouseAngle += 2 * Math.PI
+            function sliceAt(x, y) { // slice index under the mouse, -1 outside the ring
+                var dx = x - width / 2, dy = y - height / 2
+                if (Math.sqrt(dx * dx + dy * dy) >= root.centerR) return -1
+                var a = Math.atan2(dy, dx)
+                if (a < 0) a += 2 * Math.PI
+                return Math.floor((a + root.angle / 2) / root.angle) % 12
             }
-            // Check if the mouse is inside the pizza circle
-            if (distance < canvas.centerRadius) {
-               // Find the index of the slice that contains the mouse position
-               index = Math.floor((mouseAngle + canvas.angle/2) / (canvas.angle))  %12                   
-            }
-            else{
-               index=-1               
-            }
-            if (index!=hoveredIndex){  
-               hoveredIndex = index
-               console.log("hovered index:", mouseArea.hoveredIndex)
-               canvas.requestPaint ()
-            }              
-         }
-         onPressed: { 
-            down=true
-            canvas.requestPaint()
-            console.log("clickes on", mouseArea.hoveredIndex)                        
-         }
-         onReleased: { 
-            if (selectedNotes[index]==0 ){                  
-               if (sum==1){
-                  selectedNotes=[0,0,0,0,0,0,0,0,0,0,0,0]
-                  selectedNotes[index]=1
-                  sum=1
-               }
-               else{
-                     selectedNotes[index]=1
-                     sum++ 
-               }
-               root.lnote= root.cycleOfFifths[index]  
-               //root.lnote.accidental= root.cycleOfFifths[index][1] 
-               
-               root.hnote= root.cycleOfFifths[(index+1)%12] 
-               //root.hnote.accidental= root.cycleOfFifths[(index+1)%12][1] 
-               console.log(root.lnote, root.hnote) 
-            }
-            else if (selectedNotes[index]==1){
-               selectedNotes[index]=0
-               sum--
-               root.lnote= null
-               root.hnote= null
-               console.log(root.lnote, root.hnote)   
-            }
-            down=false 
-            canvas.requestPaint()            
-         }            
-      }
-      onPaint: {
-         var ctx = canvas.getContext("2d")
-         ctx.clearRect(0, 0, width, height)
 
-         for (var i = 0; i < 12; i++) { 
-            drawAxis(i, false, mouseArea.selectedNotes[i], false)
-         }
-         if (mouseArea.hoveredIndex!=-1 ) {
-            // Draw only the current slice with hovered state                           
-            drawAxis(mouseArea.hoveredIndex, true,  mouseArea.selectedNotes[mouseArea.hoveredIndex], mouseArea.down )      
-         }   
-      }
-   }
+            onPositionChanged: root.hovered = sliceAt(mouseX, mouseY)
+            onExited: root.hovered = -1
+            onPressed: root.pressed = true
+            onReleased: {
+                root.pressed = false
+                if (root.hovered >= 0) root.selected = root.hovered
+            }
+        }
+    }
 
-   Repeater {
-      model: ["C", "G", "D", "A", "E", "B", "F♯/G♭", "D♭", "A♭", "E♭", "B♭", "F"]
-      delegate: Item {
-         property var n: (index + 9 ) % 12
-         x: parent.width/2 + Math.cos(n*canvas.angle + canvas.angle/2 )*canvas.centerRadius
-         y: parent.height/2 + Math.sin(n*canvas.angle + canvas.angle/2)*canvas.centerRadius 
-         StyledTextLabel {
-            anchors.centerIn: parent
-            text: modelData  
-            font: ui.theme.largeBodyFont              
-         }
-      }
-   }
+    Repeater {
+        model: ["C", "G", "D", "A", "E", "B", "F♯/G♭", "D♭", "A♭", "E♭", "B♭", "F"]
+        delegate: Item {
+            property int n: (index + 9) % 12
+            x: root.width / 2 + Math.cos(n * root.angle + root.angle / 2) * root.centerR
+            y: root.height / 2 + Math.sin(n * root.angle + root.angle / 2) * root.centerR
+            StyledTextLabel {
+                anchors.centerIn: parent
+                text: modelData
+                font: ui.theme.largeBodyFont
+            }
+        }
+    }
 }
-      

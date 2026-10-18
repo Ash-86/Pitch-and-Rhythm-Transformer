@@ -1,21 +1,21 @@
 /*========================================================================
-  Pitch and Rhythm Transformer
-  https://github.com/Ash-86/Pitch-and-Rhythm-Transformer
+Pitch and Rhythm Transformer
+https://github.com/Ash-86/Pitch-and-Rhythm-Transformer
 
-  Copyright (C)2023 Ashraf El Droubi (Ash-86)
+Copyright (C)2023 Ashraf El Droubi (Ash-86)
 
-  This program is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
 
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+You should have received a copy of the GNU General Public License
+along with this program. If not, see <http://www.gnu.org/licenses/>.
 =========================================================================*/
 
 import QtQuick
@@ -30,1293 +30,575 @@ MuseScore {
     description: "Map, rotate, reverse or invert pitches and/or rhythm"
     version: "2"
     pluginType: "dialog"
-    thumbnailName : "Transformer.jpg"
+    thumbnailName: "Transformer.jpg"
     categoryCode: ""
 
     width: 450
     height: 280
 
-    property var menuParentScale:null;
-    property var menuModeIndex:null;
+    // ---------------------------------------------------------------- state
+    property var cur: null // working cursor
+    property int startTick: 0
+    property int endTick: 0
+    property int startStaff: 0
+    property int endStaff: 0
+    property bool notesExist: false
 
-    function applyTransform(){
+    property var selectedScale: null
+    property int selectedMode: 0
 
-        var cursor = curScore.newCursor();
-        cursor.rewind(1)
-        if (!cursor.segment) {
-            errorDialog.text="No valid range selection on current score!"
-            errorDialog.open()
-            return
+    // pitch/tpc1 are relative to C = 0 / 14, starting one octave below
+    readonly property var scaleDefs: [
+        { group: "Major Modes", pitch: [-12,-10,-8,-7,-5,-3,-1], tpc1: [14,16,18,13,15,17,19], modes: ["Ionian","Dorian","Phrygian","Lydian","Mixolydian","Aeolian","Locrian"] },
+        { group: "Melodic Minor Modes", pitch: [-12,-10,-9,-7,-5,-3,-1], tpc1: [14,16,11,13,15,17,19], modes: ["Melodic Minor","Dorian♭2 (Phrygian ♯6)","Lydian augmented","Lydian♭7","Mixolydian♭6","Locrian ♯2 (Aeolian♭5)","Altered scale"] },
+        { group: "Harmonic Minor Modes", pitch: [-12,-10,-9,-7,-5,-4,-1], tpc1: [14,16,11,13,15,10,19], modes: ["Harmonic Minor","Locrian ♮6","Ionian ♯5","Dorian ♯4","Mixolydian ♭9","Lydian ♯2","Altered scale ♭♭7"] },
+        { group: "Other", pitch: [-12,-10,-8,-7,-5,-4,-1], tpc1: [14,16,18,13,15,10,19], modes: ["Harmonic Major"] },
+        { group: "Other", pitch: [-12,-11,-8,-7,-5,-4,-1], tpc1: [14,9,18,13,15,10,19], modes: ["Double Harmonic"] },
+        { group: "Other", pitch: [-12,-11,-9,-8,-6,-5,-3,-2], tpc1: [14,21,23,18,20,15,17,11], modes: ["Half-Whole"] },
+        { group: "Other", pitch: [-12,-10,-9,-7,-6,-4,-3,-1], tpc1: [14,16,11,13,20,22,17,19], modes: ["Whole-Half"] },
+        { group: "Other", pitch: [-12,-10,-8,-6,-4,-2], tpc1: [14,16,18,20,22,24], modes: ["Whole Tone"] },
+        { group: "Other", pitch: [-12,-10,-8,-5,-3], tpc1: [14,16,18,15,17], modes: ["Major Pentatonic"] },
+        { group: "Other", pitch: [-12,-9,-7,-5,-2], tpc1: [14,11,13,15,12], modes: ["Minor Pentatonic"] }
+    ]
+
+    // ------------------------------------------------------------ entry point
+    function showError(msg) {
+        errorDialog.text = msg
+        errorDialog.open()
+    }
+
+    function validate() {
+        var opts = [rotateOpts, reverseOpts, invertOpts]
+        var tab = bar.currentIndex
+        if (tab < 3 && opts[tab].current < 0) return "Please select an option."
+        if (tab === 3) {
+            if (!selectedScale) return "Please choose a scale."
+            if (!mapScaleBtn.checked && !colorNotesBtn.checked) return "Please select an option."
         }
+        return null
+    }
 
-        /////// Get Selection //////////////////////////
-        cursor.rewind(2); // go to the end of the selection
-		var endTick = cursor.tick;
-		if (endTick == 0) { // dealing with some bug when selecting to end.
-   		    var endTick = curScore.lastSegment.tick+1  ;
-		}
-		var endStaff = cursor.staffIdx +1;
-        var endTrack = endStaff * 4;
-		//start
-		cursor.rewind(1); // go to the beginning of the selection
-		var startSegTick= curScore.selection.startSegment.tick;
-		var startTick = cursor.tick;
-		var startStaff = cursor.staffIdx;
-		var startTrack = startStaff * 4;
-        cursor.rewind(1);       // beginning of selection
-        ///////////////////////////////////////////////////
+    function applyTransform() {
+        cur = curScore.newCursor()
+        cur.rewind(1)
+        if (!cur.segment) return showError("No valid range selection on current score!")
 
+        var err = validate()
+        if (err) return showError(err)
 
-        var scales={
-            "Major Modes": {
-                  pitch: [-12,-10,-8,-7,-5,-3,-1],
-                  tpc1: [14,16,18,13,15,17,19] ,
-                  tpc2: null
-            },
-            "Melodic Minor Modes": {
-                  pitch: [-12,-10,-9,-7,-5,-3,-1],
-                  tpc1: [14,16,11,13,15,17,19],
-                  tpc2: null
-            },
-            "Harmonic Minor Modes": {
-                pitch: [-12,-10,-9,-7,-5,-4,-1],
-                tpc1: [14,16,11,13,15,10,19],
-                tpc2: null
-            },
-            "Harmonic Major": {
-                pitch: [-12,-10,-8,-7,-5,-4,-1],
-                tpc1: [14,16,18,13,15,10,19],
-                tpc2: null
-            },
-            "Double Harmonic":{
-                pitch: [-12,-11,-8,-7,-5,-4,-1],
-                tpc1: [14,9,18,13,15,10,19],
-                tpc2: null
-            },
-            "Half-Whole" :{
-                pitch:[-12,-11,-9,-8,-6,-5,-3,-2],
-                tpc1:[14,21,23,18,20,15,17,11],
-                tpc2: null
-            },
-            "Whole-Half" :{
-                pitch:[-12,-10,-9,-7,-6,-4,-3,-1],
-                tpc1:[14,16,11,13,20,22,17,19],
-                tpc2: null
-            },
-            "Whole Tone":{
-                pitch: [-12,-10,-8,-6,-4,-2],
-                tpc1:  [14,16,18,20,22,24] ,
-                tpc2: null
-            },
-            "Major Pentatonic":{
-                pitch: [-12,-10,-8,-5,-3],
-                tpc1: [14,16,18,15,17] ,
-                tpc2: null
-            },
-            "Minor Pentatonic":{
-                pitch: [-12,-9,-7,-5,-2],
-                tpc1: [14,11,13,15,12],
-                tpc2: null
-            }
-
-        }
-        ////////////////////////////////////////////////////////////////////////////
-
-        curScore.startCmd()
+        cur.rewind(2) // end of selection
+        endTick = cur.tick || curScore.lastSegment.tick + 1 // tick 0 = selected to score end
+        endStaff = cur.staffIdx + 1
+        cur.rewind(1) // start of selection
+        startTick = cur.tick
+        startStaff = cur.staffIdx
 
         var els = curScore.selection.elements
-        var tracks=[]
-        var notesExist=false
-        for (var i in els){
-            if (els[i].type == 20) {notesExist=true}  //20 is note type number
-            if ( !tracks.some(function(x){return x==els[i].track}) ){
-                tracks.push(els[i].track)
-            }
+        var tracks = []
+        notesExist = false
+        for (var i = 0; i < els.length; i++) {
+            if (els[i].type === Element.NOTE) notesExist = true
+            if (tracks.indexOf(els[i].track) < 0) tracks.push(els[i].track)
         }
-        for (var i=0; i<tracks.length; i++){
-            cursor.track=tracks[i]
-            cursor.rewindToTick(startTick)
-            if(!cursor.element){ //check if voice exists
-               continue
+
+        curScore.startCmd()
+        tracks.forEach(function(t) {
+            cur.track = t
+            cur.rewindToTick(startTick)
+            if (!cur.element) return // voice doesn't exist
+            switch (bar.currentIndex) {
+            case 0: rotate(rotateOpts.current); break
+            case 1: reverse(reverseOpts.current); break
+            case 2: invertTrack(invertOpts.current, invertType.checked); break
+            case 3: mapScale(); break
+            case 4: mapPitch(); break
             }
-
-            if (rotateTab.checked){
-                var arrays= getArrays()
-                var Pitches = arrays.pitches
-                var onlyPitches= arrays.onlyPitches
-                var Rhythm = arrays.rhythm
-                var step = getStep(Rhythm, stepBox.currentValue)
-
-                if (rotatePitchesBox.checked){
-                    var Pitches= rotateArray(onlyPitches,step)
-                    editPitches(Pitches)
-                }
-                else if (rotateRhythmBox.checked){
-                    var Rhythm= rotateArray(Rhythm,step)
-                    reWrite(Pitches,Rhythm)
-                }
-                else if (rotateBothBox.checked){
-                    var Pitches=rotateArray(Pitches,step)
-                    var Rhythm= rotateArray(Rhythm,step)
-                    reWrite(Pitches,Rhythm)
-                }
-                else  {
-                    errorDialog.text="Please select an option."
-                    errorDialog.open()
-                    return
-                }
-            }
-            if (reverseTab.checked){
-                var arrays= getArrays()
-                var Pitches = arrays.pitches
-                var onlyPitches= arrays.onlyPitches
-                var Rhythm = arrays.rhythm
-
-                if (reversePitchesBox.checked){
-                    var onlyPitches= onlyPitches.reverse()
-                    editPitches(onlyPitches)
-                }
-                else if (reverseRhythmBox.checked){
-                    var Rhythm=Rhythm.reverse()
-                    reWrite(Pitches,Rhythm)
-                }
-                else if (reverseBothBox.checked){
-                    var Pitches= Pitches.reverse()
-                    var Rhythm=Rhythm.reverse()
-                    reWrite(Pitches,Rhythm)
-                }
-                else  {
-                    errorDialog.text="Please select an option."
-                    errorDialog.open()
-                    return
-                }
-            }
-            if(invertTab.checked){
-                if (invertByPitch.checked){
-                    var accidental=accidentalBox.currentValue
-                    var octave=octaveBox.currentValue
-                    var noteValue=noteBox.currentValue
-
-                    var pivot= getPivot(noteValue,accidental, octave)
-                    invert(pivot, invertType.checked)
-                }
-                else if (invertByOutermostPitchesBox.checked){
-                    var arrays = getArrays()
-                    var Hnote= arrays.Hnote
-                    var Lnote= arrays.Lnote
-                    invertUsingOutermostPitches(invertType.checked)
-                }
-                else if (invertByNegativeHarmony.checked){
-                    var arrays = getArrays()
-                    var meanOctave= Math.floor((arrays.Hnote.pitch + arrays.Lnote.pitch) / 2 / 12) -1
-                    var Ln= negativeHarmony.lnote
-                    var Hn= negativeHarmony.hnote
-                    var Lnote= getPivot(Ln[0], Ln[1], meanOctave)
-                    var Hnote= getPivot(Hn[0], Hn[1], meanOctave)
-                    invertUsingOutermostPitches(invertType.checked)
-                }
-                else  {
-                    errorDialog.text="Please select an option."
-                    errorDialog.open()
-                    return
-                }
-            }
-            if (mapTab.checked){
-                if ( menuModeIndex==null) {
-                    errorDialog.text="Please choose a scale."
-                    errorDialog.open()
-                    return
-                }
-                var notename=noteBoxMap.currentValue
-                var noteacc=accidentalBoxMap.currentValue
-                var pivot= getPivot(notename,noteacc,-1)
-
-
-                var scale=scales[menuParentScale]
-                var modeDistance= scale.pitch[menuModeIndex] +12 //+12 because the modes pitches above start from -12
-
-                var transposedScale=transpose(scale,pivot.pitch-modeDistance ) // ,curScore.keysig)
-                console.log("transpsed scale:", transposedScale.pitch, transposedScale.tpc1 )
-                var Map= getScaleMap(transposedScale)
-                if (mapScaleBtn.checked){
-                    performMapping(Map)
-                }
-                else if (colorNotesBtn.checked){
-                    cursor.rewindToTick(startTick)
-                    colorNotes(Map)
-                }
-                else  {
-                    errorDialog.text="Please select an option."
-                    errorDialog.open()
-                    return
-                }
-                //console.log("Map: ",Map.pitch, Map.tpc1)
-                // var oldMap= getDiatonicMap()
-                // console.log("old diatonicMap", oldMap.pitch,   oldMap.tpc1 )
-            }
-
-            if(mapPitchTab.checked){
-                mapPitch()
-            }
-
-        }//end for tracks
-
-        //curScore.selection.selectRange(startTick, endTick, startStaff, endStaff);
+        })
         curScore.endCmd()
+    }
 
-        /////////////// Function Definitions //////////////////////////////////////////////
+    // ------------------------------------------------------- shared helpers
+    function forEachNote(fn) {
+        cur.rewindToTick(startTick)
+        while (cur.segment && cur.tick < endTick) {
+            var el = cur.element
+            if (el && el.type === Element.CHORD)
+                for (var n = 0; n < el.notes.length; n++) fn(el.notes[n])
+            cur.next()
+        }
+    }
 
-        function getArrays(){   //   Get arrays: Pitches, onlyPitches, Rhythm (durations)
-            var onlyPitches=[]  //without rests
-            var Pitches=[]
-            var Rhythm=[]
-            var Hnote={pitch:0, tpc1:0, tpc2:0} ///highest Note
-            var Lnote={pitch:128, tpc1:128, tpc2:128} //lowest note
-            while (cursor.segment != null && cursor.tick < endTick) {
-                var chord=[]
-                var el=cursor.element
+    function getTrans() { // instrument transposition (tpc2 - tpc1)
+        var t
+        forEachNote(function(n) { if (t === undefined) t = n.tpc2 - n.tpc1 })
+        return t === undefined ? 0 : t
+    }
 
-                if(el.type == Element.REST) {
-                    var chord = 'REST';
+    function getPivot(noteName, accidental, octave) { // pitch/tpc from user input
+        var trans = getTrans()
+        var concert = curScore.style.value('concertPitch')
+        var TV = concert ? [0, 0, trans] : [-(trans * 7) % 12, -trans, 0] // [pitch, tpc1, tpc2]
+        var base = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 }[noteName]
+        var tpcBase = { C: 14, D: 16, E: 18, F: 13, G: 15, A: 17, B: 19 }[noteName]
+        var acc = ["♭", "♮", "♯"].indexOf(accidental) - 1 // -1, 0, +1
+        var pivot = {
+            pitch: base + TV[0] + acc + (octave + 1) * 12, // MuseScore octaves start at -1
+            tpc1: tpcBase + TV[1] + 7 * acc, // a sharp/flat is +/-7 in tpc
+            tpc2: tpcBase + TV[2] + 7 * acc
+        }
+        pivot.tpc = concert ? pivot.tpc1 : pivot.tpc2
+        return pivot
+    }
+
+    function normalizeTpc() { // keep tpc within 6..26 (no double sharps/flats)
+        var hi = -99, lo = 99
+        forEachNote(function(n) { hi = Math.max(hi, n.tpc); lo = Math.min(lo, n.tpc) })
+        var shift = hi > 26 ? -Math.ceil((hi - 26) / 12) : (lo < 6 ? Math.ceil((6 - lo) / 12) : 0)
+        if (shift)
+            forEachNote(function(n) { n.tpc1 += shift * 12; n.tpc2 += shift * 12 })
+    }
+
+    // ----------------------------------------------- rotate / retrograde
+    function getArrays() { // pitches (with rests), onlyPitches (chords), rhythm, highest/lowest note
+        var pitches = [], onlyPitches = [], rhythm = []
+        var Hnote = { pitch: 0, tpc: 0, tpc1: 0, tpc2: 0 }
+        var Lnote = { pitch: 128, tpc: 128, tpc1: 128, tpc2: 128 }
+
+        cur.rewindToTick(startTick)
+        while (cur.segment && cur.tick < endTick) {
+            var el = cur.element
+            var chord = []
+            if (el.type === Element.REST) {
+                chord = 'REST'
+            } else if (el.type === Element.CHORD) {
+                for (var n = 0; n < el.notes.length; n++) {
+                    var nt = el.notes[n]
+                    var item = { pitch: nt.pitch, tpc: nt.tpc, tpc1: nt.tpc1, tpc2: nt.tpc2 }
+                    if (nt.pitch > Hnote.pitch) Hnote = item
+                    if (nt.pitch < Lnote.pitch) Lnote = item
+                    chord.push(item)
                 }
-                if (el.type == Element.CHORD) {
-                    for (var n in el.notes){
-                        if(el.notes[n].pitch > Hnote.pitch){
-                            Hnote.pitch = el.notes[n].pitch
-                            Hnote.tpc1 = el.notes[n].tpc1
-                            Hnote.tpc2 = el.notes[n].tpc2
-                        }
-                        if(el.notes[n].pitch < Lnote.pitch){
-                            Lnote.pitch = el.notes[n].pitch
-                            Lnote.tpc1 = el.notes[n].tpc1
-                            Lnote.tpc2 = el.notes[n].tpc2
-                        }
-                        var chordNote ={
-                            pitch: el.notes[n].pitch,
-                            tpc: el.notes[n].tpc,
-                            tpc1: el.notes[n].tpc1,
-                            tpc2: el.notes[n].tpc2
-                        }
-
-                        chord.push(chordNote)
-                        //chord.push([pitch,tpc, tpc1,tpc2])
-                    }
-                    onlyPitches.push(chord)  ///array without rests
-                }
-                Pitches.push(chord)
-
-                const durations={
-                    dur: [el.duration.numerator, el.duration.denominator],
-                    tupdur: 0,
-                    ratio: 0,
-                    tuplength: 0,
-                    atMeasureEnd: cursor.tick===cursor.measure.lastSegment.tick
-                }
-
-                if(el.tuplet) { // tuplets are a special case
-                    durations.tupdur = [el.tuplet.globalDuration.numerator, el.tuplet.globalDuration.denominator]
-                    durations.ratio = [el.tuplet.actualNotes, el.tuplet.normalNotes]
-                    durations.tupLength= el.tuplet.elements.length
-                }
-
-                Rhythm.push(durations)
-
-                cursor.next();
+                onlyPitches.push(chord)
             }
-            if (!onlyPitches.length & !notesExist) {
-                errorDialog.text="Selection empty. No changes made!"
-                errorDialog.open()
-                return
+            pitches.push(chord)
+
+            var d = { dur: [el.duration.numerator, el.duration.denominator], tup: null }
+            if (el.tuplet) {
+                d.tup = {
+                    dur : [el.tuplet.globalDuration.numerator, el.tuplet.globalDuration.denominator],
+                    ratio : [el.tuplet.actualNotes, el.tuplet.normalNotes],
+                    len : el.tuplet.elements.length
+                }
             }
-            var arrays={
-                pitches: Pitches,
-                onlyPitches: onlyPitches,
-                rhythm: Rhythm,
-                Hnote: Hnote,
-                Lnote: Lnote
-            }
-            cursor.rewindToTick(startTick)
-            return arrays
+            rhythm.push(d)
+            cur.next()
         }
 
+        if (!onlyPitches.length && !notesExist) {
+            showError("Selection empty. No changes made!")
+            return null
+        }
+        return { pitches: pitches, onlyPitches: onlyPitches, rhythm: rhythm, Hnote: Hnote, Lnote: Lnote }
+    }
 
+    function rePitch(pitches) { // rewrite pitches only, keep rhythm
+        var i = 0
+        cur.rewindToTick(startTick)
+        while (cur.segment && cur.tick < endTick) {
+            var el = cur.element
+            if (el.type === Element.CHORD) {
+                for (var n = el.notes.length - 1; n >= 1; n--) el.remove(el.notes[n]) // keep lowest note
+                var p = pitches[i++]
+                el.notes[0].pitch = p[0].pitch
+                el.notes[0].tpc1 = p[0].tpc1
+                el.notes[0].tpc2 = p[0].tpc2
+                for (var k = 1; k < p.length; k++) {
+                    cur.addNote(p[k].pitch, true)
+                    cur.prev()
+                }
+            }
+            cur.next()
+        }
+        curScore.selection.selectRange(startTick, endTick, startStaff, endStaff)
+    }
 
-        function getStep(Rhythm, inputStep){   //// if tuplet at ends of selection change rotation step to number of tuplet notes
-            if (Rhythm[Rhythm.length-1].ratio[0]>0 && inputStep>0){
-                var step =Rhythm[Rhythm.length-1].tupLength
+    function reWrite(pitches, rhythm) { // rewrite pitches and rhythm
+        cur.rewindToTick(startTick)
+        while (cur.segment && cur.tick < endTick) {
+            var el = cur.element
+            if (el.tuplet) removeElement(el.tuplet) // tuplets must be removed explicitly
+            cur.next()
+        }
+        cur.rewindToTick(startTick)
+
+        var left = 0 // elements still to enter in the current tuplet
+        for (var i = 0; i < pitches.length; i++) {
+            var r = rhythm[i]
+            if (r.tup && left === 0) {
+                cur.addTuplet(fraction(r.tup.ratio[0], r.tup.ratio[1]), fraction(r.tup.dur[0], r.tup.dur[1]))
+                left = r.tup.len
             }
-            else if (Rhythm[0].ratio[0]>0 && inputStep<0){
-                var step=-Rhythm[0].tupLength
+            if (left > 0) left--
+
+            cur.setDuration(r.dur[0], r.dur[1])
+            var p = pitches[i]
+            if (p === 'REST') cur.addRest()
+            else p.forEach(function(note, j) { cur.addNote(note.pitch, j > 0) })
+        }
+    }
+
+    function getStep(rhythm, input) { // tuplet at a selection end: rotate by whole tuplet
+        var first = rhythm[0], last = rhythm[rhythm.length - 1]
+        if (input > 0 && last.tup) return last.tup.len
+        if (input < 0 && first.tup) return -first.tup.len
+        return input
+    }
+
+    function rotateArray(arr, step) {
+        var len = arr.length
+        return arr.map(function(_, i) { return arr[(((i - step) % len) + len) % len] })
+    }
+
+    function rotate(opt) {
+        var a = getArrays()
+        if (!a) return
+        var step = getStep(a.rhythm, stepBox.currentValue)
+        applyOpt(opt, a, function(arr) { return rotateArray(arr, step) })
+    }
+
+    function reverse(opt) {
+        var a = getArrays()
+        if (!a) return
+        applyOpt(opt, a, function(arr) { return arr.slice().reverse() })
+    }
+
+    function applyOpt(opt, a, f) { // f: array -> array; 0 pitches, 1 rhythm, 2 both
+        if (opt === 0) rePitch(f(a.onlyPitches))
+        else if (opt === 1) reWrite(a.pitches, f(a.rhythm))
+        else reWrite(f(a.pitches), f(a.rhythm))
+        curScore.selection.selectRange(startTick, endTick, startStaff, endStaff)
+    }
+
+    // ------------------------------------------------------------- invert
+
+    function diatonicIdx(note, map) {
+        var i = map.pitch.indexOf(note.pitch)
+        if (i >= 0) return i
+        var next = map.pitch.indexOf(note.pitch + 1)
+        var nextTpc = (curScore.style.value('concertPitch') ? map.tpc1 : map.tpc2)[next]
+        return note.tpc + 7 === nextTpc ? next : map.pitch.indexOf(note.pitch - 1)
+    }
+
+    function diatonicPivotIdx(pivot, map) {
+        var i = map.pitch.indexOf(pivot.pitch)
+        return i >= 0 ? i : map.pitch.indexOf(pivot.pitch + 1) - 0.5
+    }
+
+    function invertTrack(opt, chromatic) { // 0 outermost, 1 specific pitch, 2 negative harmony
+        var L, H, pivot
+        if (opt === 1) {
+            pivot = getPivot(invertPicker.note, invertPicker.accidental, invertPicker.octave)
+        } else {
+            var a = getArrays()
+            if (!a) return
+            L = a.Lnote
+            H = a.Hnote
+            if (opt === 2) {
+                var ln = negativeHarmony.lnote, hn = negativeHarmony.hnote
+                var l0 = getPivot(ln[0], ln[1], 0), h0 = getPivot(hn[0], hn[1], 0) // axis in octave 0
+                var k = Math.round(((L.pitch + H.pitch) / 2 - (l0.pitch + h0.pitch) / 2) / 12)
+                L = getPivot(ln[0], ln[1], k)
+                H = getPivot(hn[0], hn[1], k)
             }
-            else{
-                var step= inputStep
-            }
-            return step
+            pivot = { pitch: (L.pitch + H.pitch) / 2, tpc1: (L.tpc1 + H.tpc1) / 2, tpc2: (L.tpc2 + H.tpc2) / 2 }
         }
 
+        if (chromatic) {
+            forEachNote(function(n) {
+                n.pitch = 2 * pivot.pitch - n.pitch
+                n.tpc1 = 2 * pivot.tpc1 - n.tpc1
+                n.tpc2 = 2 * pivot.tpc2 - n.tpc2
+            })
+        } else {
+            var map = buildScale(scaleDefs[0], (7 * curScore.keysig) % 12) // diatonic scale // JS % keeps sign: -3 flats -> -9, keeps Eb not D#
+            var pivotIdx = opt === 1 ? diatonicPivotIdx(pivot, map)
+                                     : (diatonicIdx(L, map) + diatonicIdx(H, map)) / 2
+            forEachNote(function(n) {
+                var idx = 2 * pivotIdx - diatonicIdx(n, map)
+                n.pitch = map.pitch[idx]
+                n.tpc1 = map.tpc1[idx]
+                n.tpc2 = map.tpc2[idx]
+            })
+        }
+        normalizeTpc()
+    }
 
+    // -------------------------------------------------------------- map scale
+    function buildScale(scale, interval) { // transpose by signed interval (sign keeps spelling), repeat over 11 octaves
+        var shift = ((interval % 12) + 12) % 12 // pitch classes only: keeps coverage of 0..127
+        var tpc1 = scale.tpc1.map(function(x) { return x + interval * 7 })
+        while (tpc1.some(function(x) { return x > 26 })) tpc1 = tpc1.map(function(x) { return x - 12 })
+        while (tpc1.some(function(x) { return x < 6 })) tpc1 = tpc1.map(function(x) { return x + 12 })
+        var trans = getTrans()
+        var map = { pitch: [], tpc1: [], tpc2: [] }
+        for (var j = 0; j < 11; j++) {
+            scale.pitch.forEach(function(p) { map.pitch.push(p + shift + 12 * j) })
+            tpc1.forEach(function(t) { map.tpc1.push(t); map.tpc2.push(t + trans) })
+        }
+        return map
+    }
 
-        function editPitches(Pitches){
-            var i=0
-            while (cursor.segment != null && cursor.tick < endTick) {
-                var el=cursor.element
-                if (el.type == Element.CHORD) {
-                    if (el.notes.length>1){
-                        for ( var n=el.notes.length-1; n>=1; n--){///delete all notes except lowest note
-                            el.remove(el.notes[n])
-                        }
-                    }
-                    el.notes[0].pitch= Pitches[i][0].pitch  ///change lowest note pitch and tpc
-                    el.notes[0].tpc1= Pitches[i][0].tpc1
-                    el.notes[0].tpc2= Pitches[i][0].tpc2
-                    //  console.log("tick: ", cursor.tick)
-                    if (Pitches[i].length>1){
-                        for (var n=1; n<Pitches[i].length; n++){  /// add notes on top of lowest note
-                            cursor.addNote(Pitches[i][n].pitch, cursor)
-                            // console.log("add:", Pitches[step][n][0])
-                            cursor.prev()
-                        }
-                    }
-                    i++
-                }
-                // console.log("tick: ", cursor.tick)
-                cursor.next()
+    function performMapping(map) {
+        forEachNote(function(n) {
+            var up = 0, down = 0
+            while (map.pitch.indexOf(n.pitch + up) < 0) up++
+            while (map.pitch.indexOf(n.pitch + down) < 0) down--
+            var offset = (up < -down) ? up : down
+            if (up === -down && up !== 0) // equidistant: decide by spelling
+                offset = (n.tpc1 - map.tpc1[map.pitch.indexOf(n.pitch + down)] === 7) ? down : up
+            var idx = map.pitch.indexOf(n.pitch + offset)
+            n.pitch = map.pitch[idx]
+            n.tpc1 = map.tpc1[idx]
+            n.tpc2 = map.tpc2[idx]
+        })
+    }
+
+    function colorNotes(map) {
+        var red = "#e21c48"
+        forEachNote(function(n) {
+            if (map.pitch.indexOf(n.pitch) >= 0) return
+            n.color = red
+            if (n.accidental) n.accidental.color = red
+            for (var i = 0; n.dots && i < n.dots.length; i++) n.dots[i].color = red
+        })
+    }
+
+    function mapScale() {
+        var pivot = getPivot(mapPicker.note, mapPicker.accidental, -1)
+        var interval = pivot.pitch - (selectedScale.pitch[selectedMode] + 12) // +12: scale tables start at -12
+        var map = buildScale(selectedScale, interval)
+        if (mapScaleBtn.checked) performMapping(map)
+        else colorNotes(map)
+    }
+
+    function buildModeMenu() {
+        var groups = {}, order = []
+        scaleDefs.forEach(function(s, si) {
+            if (!groups[s.group]) {
+                groups[s.group] = { id: String(order.length), title: s.group, subitems: [] }
+                order.push(s.group)
             }
-            curScore.selection.selectRange(startTick, endTick, startStaff, endStaff);
+            s.modes.forEach(function(m, mi) { groups[s.group].subitems.push({ id: si + ":" + mi, title: m }) })
+        })
+        return order.map(function(g) { return groups[g] })
+    }
+
+    // -------------------------------------------------------------- map pitch
+    function mapPitch() {
+        var m = myMapPitch
+        var oldN = getPivot(m.noteIn, m.accIn, m.octIn)
+        var newN = getPivot(m.noteOut, m.accOut, m.octOut)
+
+        function fixPitch(scorePitch, p) {
+            if (m.down) {
+                while (scorePitch - p <= 0) p -= 12
+                while (scorePitch - p > 12) p += 12
+            }
+            if (m.up) {
+                while (p - scorePitch <= 0) p += 12
+                while (p - scorePitch > 12) p -= 12
+            }
+            return p
         }
 
-
-
-
-        function reWrite (Pitches,Rhythm){
-            ////////// start delete block /////////////////
-            cursor.rewindToTick(startTick);
-
-            while(cursor.segment && cursor.tick < endTick) {
-                var el = cursor.element;
-                if(el.tuplet) {
-                    removeElement(el.tuplet); // you have to specifically remove tuplets
-                }
-                // else {
-                //     removeElement(e);
-                // }
-                cursor.next(); // advance cursor
+        forEachNote(function(n) {
+            var match = m.allOct ? (n.pitch - oldN.pitch) % 12 == 0 : n.pitch == oldN.pitch
+            if (match && !m.enharm) match = (n.tpc == oldN.tpc1 || n.tpc == oldN.tpc2)
+            if (!match) return
+            if (m.filter) {
+                curScore.selection.select(n, true)
+            } else {
+                n.pitch = fixPitch(n.pitch, newN.pitch)
+                n.tpc1 = newN.tpc1
+                n.tpc2 = newN.tpc2
             }
-            //////////////////////end delete block ////////////////
-			cursor.rewindToTick(startTick)
+        })
+    }
 
-            var durCum=0 //cumulative sum of note duration values to keep count of triplets
-            for(var i = 0; i < Pitches.length; i++) {
-
-                if(Rhythm[i].ratio[0] && durCum == 0) { // check for tuplet. only on the first tuplet element  create the tuplet
-	                cursor.addTuplet( fraction (Rhythm[i].ratio[0], Rhythm[i].ratio[1]),
-                                    fraction (Rhythm[i].tupdur[0], Rhythm[i].tupdur[1]) ); // ratios and durations
-                    var durSum= (Rhythm[i].tupdur[0] / Rhythm[i].tupdur[1]) * ( Rhythm[i].ratio[0] / Rhythm[i].ratio[1])
-                }
-                if(Rhythm[i].ratio[0] &&  durCum<durSum) {
-                    durCum+=  (Rhythm[i].dur[0] / Rhythm[i].dur[1])
-                }
-                if ( durCum==durSum) {
-                    durCum=0;
-	            }
-
-
-                cursor.setDuration(Rhythm[i].dur[0], Rhythm[i].dur[1]);
-                // if there is only a single note
-                if(Pitches[i].length == 1) {
-                    cursor.addNote(Pitches[i][0].pitch); // add note
-                }
-                // if there is a chord or rest
-                if(Pitches[i].length > 1) {
-                    // if rest
-                    if(Pitches[i] === 'REST') {
-                        cursor.addRest () // add rest
-                    }
-                    else {
-                        // if chord
-                        for(var j = 0; j < Pitches[i].length; j++) {
-                            if(j == 0) { // loop through each pitch of chord
-                                // write the root note in a new cursor position
-                                cursor.addNote(Pitches[i][j].pitch); // root of chord
-                            }
-                            else {
-                                // write the notes to the same cursor position
-                                cursor.addNote(Pitches[i][j].pitch, cursor); // remainder of notes in chord
-                            }
-                        }
-                    }
-                }
-            } // end for
-            curScore.selection.selectRange(startTick, endTick, startStaff, endStaff);
-        }//end function
-
-
-        function rotateArray(Array, stepSize){
-            var NewArray=[]
-            for(var i = 0; i < Array.length; i++){
-                if (stepSize==0){
-                    return
-                    //NewArray.push(Array[Array.length-1-i]) /// reverses array. used array.reverse() instead
-                }
-                else{
-                    NewArray.push(Array[(-stepSize+i+Array.length)%Array.length ])
-                }
-            }
-            return NewArray
-        }
-
-
-        function getTrans(){ ///get instrument tranposition value
-             //cursor.rewindToTick(startTick)
-             while (cursor.segment && cursor.tick < endTick){
-               var el=cursor.element
-               if (el.type==Element.CHORD){
-                  var dtpc=el.notes[0].tpc2-el.notes[0].tpc1
-                  return dtpc
-               }
-                cursor.next()
-             }
-         }
-
-        function getPivot(noteValue, accidental, octave){ ////calculate pivot pitch and tpc values from user input
-             var trans=getTrans()
-             if (curScore.style.value('concertPitch')){
-                   var TV=[0,0,trans] // Transposition Vector [pitch, tpc1, tpc2]
-            }
-             else{
-                   var TV=[-(trans*7)%12,-trans,0]
-            }
-
-            const notes={
-                C:{pitch:0 + TV[0],tpc1:14 + TV[1], tpc2:14 + TV[2]},
-                E:{pitch:4+ TV[0],tpc1:18 + TV[1], tpc2:18 + TV[2]} ,
-                D:{pitch:2+ TV[0],tpc1:16 + TV[1], tpc2:16 + TV[2]},
-                F:{pitch:5+ TV[0],tpc1:13 + TV[1], tpc2:13 + TV[2]} ,
-                G:{pitch:7+ TV[0],tpc1:15 + TV[1], tpc2:15 + TV[2]} ,
-                A:{pitch:9+ TV[0],tpc1:17 + TV[1], tpc2:17 + TV[2]} ,
-                B:{pitch:11+ TV[0],tpc1:19 + TV[1], tpc2:19 + TV[2]}
-            }
-            var note= notes[noteValue]
-
-
-            //MS starts counting octaves from -1, therefore the need to add 1 to octave
-            //tpc distance from natural to flat or sharp is -7 and +7. ex: C, Cb, C#
-            //
-
-            if(accidental=="♭"){
-                var pivot={pitch:(note.pitch-1)+(octave+1)*12,
-                            tpc1:note.tpc1-7,
-                            tpc2:note.tpc2-7}
-            }
-            if(accidental=="♯"){
-                var pivot={pitch:(note.pitch+1)+(octave+1)*12,
-                            tpc1:note.tpc1+7,
-                            tpc2:note.tpc2+7}
-            }
-            if(accidental=="♮"){
-                var pivot={pitch:note.pitch+(octave+1)*12,
-                            tpc1:note.tpc1,
-                            tpc2:note.tpc2}
-            }
-            return pivot
-        }
-
-        function getEnharmonic(){ //confine tpc values between 11 and 21 in order to not have double sharps or doulble flats
-            cursor.rewindToTick(startTick)
-            var tpcOverflow=0
-            var Htpc=26
-            var Ltpc=6
-            while (cursor.segment && cursor.tick < endTick) {
-                var el=cursor.element
-                if (el.type == Element.CHORD) {
-                    for ( var n=0; n<el.notes.length; n++){
-                        if (el.notes[n].tpc>Htpc){
-                            tpcOverflow=1
-                            Htpc=el.notes[n].tpc
-                        }
-                        if (el.notes[n].tpc<Ltpc){
-                            tpcOverflow=-1
-                            Ltpc=el.notes[n].tpc
-                        }
-                    }
-                }
-                cursor.next()
-           }
-
-            var counter=0
-            while (Htpc>26){
-                Htpc-=12
-                counter++
-            }
-            while (Ltpc<6){
-                Ltpc+=12
-                counter++
-            }
-            if (tpcOverflow!=0){
-                cursor.rewindToTick(startTick)
-                while (cursor.segment && cursor.tick < endTick) {
-                    var el=cursor.element
-                    if (el.type == Element.CHORD) {
-                        for ( var n=0; n<el.notes.length; n++){
-                            if (tpcOverflow==1){
-                                el.notes[n].tpc1-= counter*12
-                                el.notes[n].tpc2-= counter*12
-                            }
-                            if (tpcOverflow==-1){
-                                el.notes[n].tpc1+= counter*12
-                                el.notes[n].tpc2+= counter*12
-                            }
-                        }
-                    }
-                    cursor.next()
-                }
-            }
-            return
-        }
-
-        function getDiatonicMap(){
-            var trans=getTrans()
-            var keySig= curScore.keysig
-            var scale=[0,2,4,5,7,9,11]
-            var tpc1s=[14,16,18,13,15,17,19]
-            var tpc2s=tpc1s.map(function(x) { return x+trans})
-            //var tpc2s=[14+trans,16+trans,18+trans,13+trans,15+trans,17+trans,19+trans]
-            ///adjust map to key signature
-            if (keySig>0) {//if sharp signature
-                var pos=3  ///start circle of 4th from F
-                for (var i=0; i<keySig;i++){
-                      scale[(pos)%7]+=1 //plus half step
-                      tpc1s[(pos)%7]+=7
-                      tpc2s[(pos)%7]+=7
-                      pos=(pos+4)%7
-                }
-            }
-            if (keySig<0) {//if flat signature
-                var pos=6///start circle of 4th from B
-                for (var i=0; i<-keySig;i++){
-                    scale[(pos)%7]-=1 //minus half step
-                    tpc1s[(pos)%7]-=7
-                    tpc2s[(pos)%7]-=7
-                    pos=(pos+3)%7
-                }
-            }
-
-            var scaleMap=[]
-            var tpc1Map=[]
-            var tpc2Map=[]
-
-            for (var j=0; j<11;j++){
-                scaleMap=scaleMap.concat(scale)
-                tpc1Map=tpc1Map.concat(tpc1s)
-                tpc2Map=tpc2Map.concat(tpc2s)
-                scale=scale.map(function(x) { return x+12})
-            }
-
-            for(var x=0;x<scaleMap.length;x++) {
-                console.log(scaleMap[x]+"-"+tpc1Map[x]+"-"+tpc2Map[x])
-            }
-
-            const Map={pitch:scaleMap, tpc1:tpc1Map, tpc2:tpc2Map}
-            return Map
-        }
-
-        function invert(pivot, invType){
-            while (cursor.segment && cursor.tick < endTick) {
-                var el=cursor.element
-                if (el.type == Element.CHORD) {
-                    for ( var n=0; n<el.notes.length; n++){
-                        if (invType==1){///chromatic
-                            el.notes[n].pitch= pivot.pitch -(el.notes[n].pitch - pivot.pitch)
-                            el.notes[n].tpc1=  pivot.tpc1 -(el.notes[n].tpc1 - pivot.tpc1)
-                            el.notes[n].tpc2=  pivot.tpc2 -(el.notes[n].tpc2 - pivot.tpc2)
-                        }
-                        if(invType==0){///if diatonic
-                            var Map=getDiatonicMap()
-
-                            var noteDiaIdx=getDiatonicIdx(el.notes[n])
-
-                            //check if pivot note is diatonic
-                            if (Map.pitch.some(function(x){return x==pivot.pitch})){
-                            var pivotIdx=Map.pitch.indexOf(pivot.pitch)
-                            }
-                            else{////pivot pitch is not a diatonic note
-                                var nearestPivotIdx=Map.pitch.indexOf(pivot.pitch+1)
-                                var pivotIdx= nearestPivotIdx-0.5
-                            }
-
-                            ///get noteIndex of inverse note
-                            var invNoteIdx=pivotIdx-(noteDiaIdx-pivotIdx)
-
-                            // console.log(" => invNoteIdx = "+invNoteIdx+" for ranges "+Map.pitch.length+", "+Map.tpc1.length+", "+Map.tpc2.length);
-
-                            ///apply inversion
-                            el.notes[n].pitch= Map.pitch[invNoteIdx]
-                            el.notes[n].tpc1= Map.tpc1[invNoteIdx]
-                            el.notes[n].tpc2= Map.tpc2[invNoteIdx]
-                        }
-                    }
-                }
-                cursor.next()
-            }
-            getEnharmonic()
-        }
-
-
-        function invertUsingOutermostPitches(invType){
-           var pivot={pitch:0, tpc1:0, tpc2:0}
-           pivot.pitch = Lnote.pitch+(Hnote.pitch-Lnote.pitch)/2
-           pivot.tpc1=Lnote.tpc1+(Hnote.tpc1-Lnote.tpc1)/2
-           pivot.tpc2=Lnote.tpc2+(Hnote.tpc2-Lnote.tpc2)/2
-
-            while (cursor.segment && cursor.tick < endTick) {
-                var el=cursor.element
-                if (el.type == Element.CHORD) {
-                    for ( var n=0; n<el.notes.length; n++){
-
-                        if (invType==1){///chromatic
-                            el.notes[n].pitch= pivot.pitch -(el.notes[n].pitch - pivot.pitch)
-                            el.notes[n].tpc1= pivot.tpc1 -(el.notes[n].tpc1 - pivot.tpc1)
-                            el.notes[n].tpc2= pivot.tpc2 -(el.notes[n].tpc2 - pivot.tpc2)
-                        }
-
-                        if (invType==0){///diatonic
-                            var Map=getDiatonicMap()
-                            var noteDiaIdx=getDiatonicIdx(el.notes[n])
-
-                            var LnoteDiaIdx=getDiatonicIdx(Lnote)
-                            var HnoteDiaIdx=getDiatonicIdx(Hnote)
-                            var invNoteDiaIdx= HnoteDiaIdx - (noteDiaIdx - LnoteDiaIdx )
-
-                            el.notes[n].pitch= Map.pitch[invNoteDiaIdx]
-                            el.notes[n].tpc1= Map.tpc1[invNoteDiaIdx]
-                            el.notes[n].tpc2= Map.tpc2[invNoteDiaIdx]
-
-                        }
-                    }
-
-                }
-                cursor.next()
-            } //end while
-        }   ///end func
-
-        function getDiatonicIdx(note){
-            var Map=getDiatonicMap()
-
-            /// if diatonic note
-            if (Map.pitch.some(function(x){return x==note.pitch})){
-            var diaNoteIdx=Map.pitch.indexOf(note.pitch)
-                return diaNoteIdx
-            }
-            else{//// if pitch is not a diatonic note
-                var nextDiaNoteIdx=Map.pitch.indexOf(note.pitch+1)
-
-                if (curScore.style.value('concertPitch')){
-                    var nextDiaNoteTpc=Map.tpc1[nextDiaNoteIdx]
-                }
-                else{
-                    var nextDiaNoteTpc=Map.tpc2[nextDiaNoteIdx]
-                }
-
-                if (note.tpc+7== nextDiaNoteTpc){
-                    var diaNoteIdx=nextDiaNoteIdx
-                    return diaNoteIdx
-                }
-                else{
-                    var diaNoteIdx=Map.pitch.indexOf(note.pitch-1)
-                    return diaNoteIdx
-                }
-                //var noteDeg=Map.pitch.indexOf(el.notes[n].pitch + Math.pow(-1, acc))  ///math.pow maps sharp to -1, flat to 1
-            }
-        }
-
-
-        //////////////////// Mapping Functions ///////////////////////////
-        function transpose(scale, interval){
-
-            //var interval=(12 - 5*keySig)%12
-            scale.pitch=scale.pitch.map(function(x){return x+interval})
-            scale.tpc1=scale.tpc1.map(function(x){return x+interval*7})
-
-            while(scale.tpc1.some(function(x){return x>26})){
-                scale.tpc1=scale.tpc1.map(function(x){return x-12})
-            }
-            while(scale.tpc1.some(function(x){return x<6})){
-                scale.tpc1=scale.tpc1.map(function(x){return x+12})
-            }
-            return scale
-        }//func
-
-       function getScaleMap(scale){
-            var trans=getTrans()
-            scale.tpc2=scale.tpc1.map(function(x) { return x+trans})
-
-            var pitchMap=[]
-            var tpc1Map=[]
-            var tpc2Map=[]
-
-            for (var j=0; j<11;j++){
-                pitchMap=pitchMap.concat(scale.pitch)
-                tpc1Map=tpc1Map.concat(scale.tpc1)
-                tpc2Map=tpc2Map.concat(scale.tpc2)
-                scale.pitch=scale.pitch.map(function(x){return x+12})
-            }
-
-            const Map={pitch:pitchMap, tpc1:tpc1Map, tpc2:tpc2Map}
-            return Map
-        }
-
-        function performMapping(Map){
-            while (cursor.segment != null && cursor.tick < endTick) {
-                var el=cursor.element
-                if (el.type == Element.CHORD) {
-                    for ( var n=0; n<el.notes.length; n++){
-                        var PosD=0
-                        var NegD=0
-                        var offset=0
-                        while (!Map.pitch.some(function(x){return x==el.notes[n].pitch+PosD})){
-                            PosD++
-                        }
-                        while (!Map.pitch.some(function(x){return x==el.notes[n].pitch+NegD})){
-                            NegD--
-                        }
-                        if (PosD+NegD>0){
-                            offset=NegD
-                        }
-                        if (PosD+NegD<0){
-                            offset=PosD
-                        }
-                        if (PosD!=0 && PosD==-NegD){ //check tpc
-                            var noteIdx = Map.pitch.indexOf(el.notes[n].pitch+NegD)
-
-                            if (el.notes[n].tpc1-Map.tpc1[noteIdx] == 7){
-                                offset=NegD
-                            }
-                            else{
-                                offset=PosD
-                            }
-                        }
-                        //console.log(el.notes[n].pitch,offset, Map.pitch.indexOf(el.notes[n].pitch+offset))
-                        var noteIdx = Map.pitch.indexOf(el.notes[n].pitch+offset)
-                        el.notes[n].pitch = Map.pitch[noteIdx]
-                        el.notes[n].tpc1 = Map.tpc1[noteIdx]
-                        el.notes[n].tpc2=Map.tpc2[noteIdx]
-                    }
-                }
-            cursor.next()
-            }
-        }///end performMapping
-
-        function colorNotes(Map){
-            while (cursor.segment != null && cursor.tick < endTick) {
-                var el=cursor.element
-                if (el.type == Element.CHORD) {
-                    for ( var n=0; n<el.notes.length; n++){
-                        if (!Map.pitch.some(function(x){return x==el.notes[n].pitch})){
-                            el.notes[n].color="#e21c48"
-                            if (el.notes[n].accidental)  el.notes[n].accidental.color="#e21c48"
-                            if (el.notes[n].dots){
-                                for (var i = 0; i < note.dots.length; i++) {
-                                    if (el.notes[n].dots[i]) {
-                                        el.notes[n].dots[i].color="#e21c48"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                cursor.next()
-            }
-        }
-        //////////////////////////// end Mapping Functions ////////////////////////////
-
-        function mapPitch(){
-            var oldNote= getPivot(myMapPitch.noteIn, myMapPitch.accIn, myMapPitch.octIn)
-            var newNote= getPivot(myMapPitch.noteOut, myMapPitch.accOut, myMapPitch.octOut)
-            function fixNewPitch(scorePitch,newPitch){
-                if (myMapPitch.down){
-                    while(scorePitch - newPitch<=0){
-                        newPitch-=12
-                    }
-                    while(scorePitch - newPitch>12){
-                    newPitch+=12
-                    }
-                }
-                if ( myMapPitch.up){
-                    while(newPitch - scorePitch<=0){
-                        newPitch+=12
-                    }
-                    while(newPitch - scorePitch>12){
-                        newPitch-=12
-                    }
-                }
-                return newPitch
-            }
-
-            while (cursor.segment != null && cursor.tick < endTick) {
-                var el=cursor.element
-                if (el.type == Element.CHORD) {
-                    for ( var n=0; n<el.notes.length; n++){
-                        if( myMapPitch.allOct && myMapPitch.enharm){
-                            if((el.notes[n].pitch-oldNote.pitch)%12==0 ){
-                                if(myMapPitch.filter){
-                                    curScore.selection.select(el.notes[n], true)
-                                }
-                                else{
-                                    newNote.pitch = fixNewPitch(el.notes[n].pitch, newNote.pitch )
-                                    el.notes[n].pitch=newNote.pitch
-                                    el.notes[n].tpc1=newNote.tpc1
-                                    el.notes[n].tpc2=newNote.tpc2
-                                }
-
-                            }
-                        }
-                        if( myMapPitch.allOct && !myMapPitch.enharm){
-                            if((el.notes[n].pitch-oldNote.pitch)%12==0  && (el.notes[n].tpc==oldNote.tpc1 || el.notes[n].tpc==oldNote.tpc2) ){
-                                    if(myMapPitch.filter){
-                                    curScore.selection.select(el.notes[n], true)
-                                }
-                                else{
-                                    console.log("here" ,el.notes[n].pitch, el.notes[n].tpc,oldNote.tpc2)
-                                    newNote.pitch = fixNewPitch(el.notes[n].pitch, newNote.pitch )
-                                    console.log("here" ,newNote.pitch)
-                                    el.notes[n].pitch=newNote.pitch
-                                    el.notes[n].tpc1=newNote.tpc1
-                                    el.notes[n].tpc2=newNote.tpc2
-                                }
-                            }
-                        }
-                        if(!myMapPitch.allOct && myMapPitch.enharm){
-                            if( el.notes[n].pitch==oldNote.pitch ){
-                                    if(myMapPitch.filter){
-                                    curScore.selection.select(el.notes[n], true)
-                                }
-                                else{
-                                    newNote.pitch=fixNewPitch(el.notes[n].pitch, newNote.pitch )
-                                    el.notes[n].pitch=newNote.pitch
-                                    el.notes[n].tpc1=newNote.tpc1
-                                    el.notes[n].tpc2=newNote.tpc2
-                                }
-                            }
-                        }
-                        if( !myMapPitch.allOct && !myMapPitch.enharm){
-                            if(el.notes[n].pitch==oldNote.pitch  && (el.notes[n].tpc==oldNote.tpc1 || el.notes[n].tpc==oldNote.tpc2) ) {
-                                if(myMapPitch.filter){
-                                    curScore.selection.select(el.notes[n], true)
-                                }
-                                else{
-                                    newNote.pitch=fixNewPitch(el.notes[n].pitch, newNote.pitch )
-                                    el.notes[n].pitch=newNote.pitch
-                                    el.notes[n].tpc1=newNote.tpc1
-                                    el.notes[n].tpc2=newNote.tpc2
-                                }
-                            }
-                        }
-                    }//for
-                }///if
-                cursor.next()
-            }///while
-        }///mapPitches()
-    }/// end transfor
-
-
-    ////////////////////////////////////////////////////////
-
+    // ================================================================== UI
     MessageDialog {
         id: errorDialog
         title: "Caution"
         text: ""
-        // icon: StandardIcon.Information
-        // standardButtons: StandardButton.Ok
-        onAccepted: {
-            errorDialog.close()
+        onAccepted: errorDialog.close()
+    }
+
+    component OptionGroup: Column {
+        id: og
+        property var options: []
+        property int current: -1
+        spacing: 12
+        ButtonGroup { id: grp }
+        Repeater {
+            model: og.options
+            RoundedRadioButton {
+                ButtonGroup.group: grp
+                text: modelData
+                onCheckedChanged: if (checked) og.current = index
+            }
         }
     }
 
     StyledTabBar {
-        id:bar
+        id: bar
         currentIndex: 0
         anchors.left: parent.left
         anchors.leftMargin: 15
-
-
-        StyledTabButton {
-            id: rotateTab
-            text: "Rotate"
-        }
-        StyledTabButton {
-            id: reverseTab
-            text: "Retrograde"
-        }
-        StyledTabButton {
-            id: invertTab
-            text: "Invert"
-        }
-        StyledTabButton {
-            id: mapTab
-            text: "Map Scale"
-        }
-        StyledTabButton {
-            id: mapPitchTab
-            text: "Map Pitch"
-        }
+        StyledTabButton { text: "Rotate" }
+        StyledTabButton { text: "Retrograde" }
+        StyledTabButton { text: "Invert" }
+        StyledTabButton { text: "Map Scale" }
+        StyledTabButton { text: "Map Pitch" }
     }
-    SeparatorLine{
+    SeparatorLine {
+        id: sep
         anchors.top: bar.bottom
     }
-    // Rectangle {
-    //     id : decorator;
-    //     property int targetX: (mscoreMajorVersion >= 4)?bar.currentItem.x:bar.currentItem.x+2*invertTab.width  // trick for MU3.6: bar.currentItem.x is negative !!
-    //     anchors.top: bar.bottom;
-    //     width: bar.currentItem.width;
-    //     height: 2;
-    //     color: (mscoreMajorVersion >= 4)? ui.theme.accentColor : "#2093fe"
-    //     NumberAnimation on x {
-    //         duration: 100;
-    //         to: decorator.targetX
-    //         running: decorator.x != decorator.targetX
-    //     }
-    //     Shortcut {
-    //         sequence: "Tab"
-    //         onActivated: {
-    //         //focus next tab
-    //         bar.currentIndex = (bar.currentIndex + 1)%4
-    //         }
-    //     }
-    // }
 
-    //////////// Rotate Tab ///////////////////////
-    Column {
-        enabled: rotateTab.checked
-        visible: rotateTab.checked
-        spacing: 12
-        id: rotateColumn
+    StackLayout {
+        currentIndex: bar.currentIndex
         anchors {
-            top:bar.bottom
+            top: sep.bottom
             left: parent.left
-            margins:20
-        }
-        ButtonGroup {id: rotateOptions }
-
-        RoundedRadioButton {
-            id: rotatePitchesBox
-            ButtonGroup.group: rotateOptions
-            text: "Rotate Pitches"
-        }
-        RoundedRadioButton {
-            id: rotateRhythmBox
-            ButtonGroup.group: rotateOptions
-            text: qsTr("Rotate Rhythm")
-        }
-        RoundedRadioButton {
-            id: rotateBothBox
-            ButtonGroup.group: rotateOptions
-            text: qsTr("Rotate Pitches and Rhythm")
-        }
-    }
-
-        Row {
-            spacing: 5
-            anchors.left: parent.left
-            anchors.leftMargin: 45
-            anchors.top: rotateColumn.bottom
-            anchors.topMargin: 35
-
-            enabled: rotateTab.checked
-            visible: rotateTab.checked
-
-            StyledTextLabel {
-                id: stepBoxText
-                text: "Steps by which to rotate: "
-            }
-            IncrementalPropertyControl {
-                id: stepBox
-                anchors.verticalCenter: stepBoxText.verticalCenter
-                width: 60
-                step: 1
-                minValue: -10
-                maxValue: 10
-                currentValue: 1
-                onValueEdited: function(newValue) {currentValue=newValue}
-                // textFromValue: function (value) {
-                //     return Number((value < 0) ? value : value + 1); //  bypass 0: -2, -1, 1, 2
-                // }
-                //property var val: (stepBox.value<0) ? stepBox.value : stepBox.value+1      //get value corresponding to displayed number
-            }
-        }
-
-
-    //////////// Reverse Tab ///////////////////////
-    Column {
-        enabled: reverseTab.checked
-        visible: reverseTab.checked
-        spacing: 12
-        anchors {
-            top:bar.bottom
-            left: parent.left
-            margins:20
-        }
-        ButtonGroup {id: reverseOptions}
-        RoundedRadioButton {
-            id: reversePitchesBox
-            ButtonGroup.group: reverseOptions
-            text: "Reverse Pitches" // 8
-        }
-        RoundedRadioButton {
-            id: reverseRhythmBox
-            ButtonGroup.group: reverseOptions
-            text: qsTr("Reverse Rhythm")
-        }
-        RoundedRadioButton {
-            id: reverseBothBox
-            ButtonGroup.group: reverseOptions
-            text: qsTr("Reverse Pitches and Rhythm")
-        }
-    }
-
-    ///////////  Invert TAB ///////////////////////
-    Column {
-        id: invertColumn
-        enabled: invertTab.checked
-        visible: invertTab.checked
-        spacing: 12
-        ButtonGroup {id: invertOptions}
-        anchors {
-            top: bar.bottom
-            left: parent.left
+            right: parent.right
+            bottom: parent.bottom
             margins: 20
         }
-        StyledTextLabel {
-            x: 20
-            text: "Invert Using:"
-        }
-        RoundedRadioButton {
-            id: invertByOutermostPitchesBox
-            ButtonGroup.group: invertOptions
-            text: "Outermost Pitches" //
-        }
-        RoundedRadioButton {
-            id: invertByPitch
-            ButtonGroup.group: invertOptions
-            text: qsTr("Specific Pitch:")
-        }
-        RoundedRadioButton {
-            id: invertByNegativeHarmony
-            ButtonGroup.group: invertOptions
-            text: qsTr("Axis (Negative Harmony):")
-        }
-    }//column
-    Item {
-        enabled: invertByPitch.checked && invertTab.checked
-        visible: invertByPitch.checked && invertTab.checked
-        x: invertByPitch.x + invertByPitch.width + 30
-        y: invertByPitch.y + 50
-        Row {
-            spacing: 5
-            StyledDropdown {
-                id: noteBox
-                width: 50
-                currentIndex: 0
-                model:  ["C", "D", "E", "F", "G", "A", "B" ]
-                onActivated: function(index, value) {currentIndex = index}
-            }
-            StyledDropdown {
-                id: accidentalBox
-                width: 50
-                currentIndex: 1
-                model: ["♭", "♮", "♯"]
-                onActivated: function(index, value) {currentIndex = index}
-            }
-            IncrementalPropertyControl {
-                id: octaveBox
-                width: 50
-                step: 1
-                minValue: 0
-                maxValue: 9
-                currentValue: 4
-                onValueEdited: function(newValue) {currentValue = newValue}
-            }
-        }
-    }//item
 
-
-
-
-    MyCircle {
-        id: negativeHarmony
-        enabled: invertByNegativeHarmony.checked && invertTab.checked
-        visible: invertByNegativeHarmony.checked && invertTab.checked
-        y: 40
-        anchors {
-            right: root.right
-            top: invertTab.bottom
-            margins: 50
-        }
-    }
-
-    Row {
-        enabled: invertTab.checked
-        visible: invertTab.checked
-        spacing: 10
-        anchors {
-            top: invertColumn.bottom
-            left: root.left
-            topMargin: 30
-            leftMargin: 15
-        }
-        StyledTextLabel {
-            text: "Diatonic"
-        }
-        ToggleButton {
-            id: invertType
-            checked: true
-            onToggled: checked = !checked
-        }
-        StyledTextLabel {
-            text: "Chromatic"
-        }
-    }
-
-
-    //////////// Map Tab ///////////////////////
-    ColumnLayout {
-        enabled: mapTab.checked
-        visible: mapTab.checked
-        spacing: 15
-
-        anchors {
-            top: bar.bottom
-            left: parent.left
-            margins: 20
-        }
-        StyledTextLabel {
-            id: mapUntoLabel
-            text: "Map Unto:"
-        }
-        Row {
-            spacing:5
-
-            StyledDropdown {
-                id: noteBoxMap
-                width: 60
-                currentIndex: 0
-                model: ["C", "D", "E", "F", "G", "A", "B"]
-                onActivated: function(index, value) {currentIndex = index}
-            }
-            StyledDropdown {
-                id: accidentalBoxMap
-                width: 60
-                currentIndex: 1
-                model: ["♭", "♮", "♯"]
-                onActivated: function(index, value) {currentIndex = index}
-            }
-            FlatButton {
-                FlatButtonMenuIndicatorTriangle{}
-                id: menuButton
-                text: "select mode"
-                property var items: []
-                onClicked: {
-                    menuButton.items = [
-                        {id: "0", title: "Major Modes", subitems:
-                            [
-                                { id: "0", title: "Ionian" },
-                                { id: "1", title: "Dorian" },
-                                { id: "2", title: "Phrygian" },
-                                { id: "3", title: "Lydian" },
-                                { id: "4", title: "Mixolydian" },
-                                { id: "5", title: "Aeolian" },
-                                { id: "6", title: "Locrian" }
-                            ]
-                        },
-                        {id: "1", title: "Melodic Minor Modes", subitems:
-                            [
-                                { id: "7", title: "Melodic Minor" },
-                                { id: "8", title: "Dorian♭2 (Phrygian ♯6)" },
-                                { id: "9", title: "Lydian augmented" },
-                                { id: "10", title: "Lydian♭7" },
-                                { id: "11", title: "Mixolydian♭6" },
-                                { id: "12", title: "Locrian ♯2 (Aeolian♭5)" },
-                                { id: "13", title: "Altered scale" }
-                            ]
-                        },
-                        {id: "2", title: "Harmonic Minor Modes", subitems:
-                            [
-                                { id: "14", title: "Harmonic Minor" },
-                                { id: "15", title: "Locrian ♮6" },
-                                { id: "16", title: "Ionian ♯5" },
-                                { id: "17", title: "Dorian ♯4" },
-                                { id: "18", title: "Mixolydian ♭9" },
-                                { id: "19", title: "Lydian ♯2" },
-                                { id: "20", title: "Altered scale ♭♭7" }
-                            ]
-                        },
-                        {id: "3", title: "Other", subitems:
-                            [
-                                { id: "21", title: "Harmonic Major" },
-                                { id: "22", title: "Double Harmonic" },
-                                { id: "23", title: "Half-Whole" },
-                                { id: "24", title: "Whole-Half" },
-                                { id: "25", title: "Whole Tone" },
-                                { id: "26", title: "Major Pentatonic" },
-                                { id: "27", title: "Minor Pentatonic" }
-                            ]
-                        }
-                    ]
-                    menuLoader.toggleOpened(items)
+        // Rotate
+        Item {
+            ColumnLayout {
+                spacing: 35
+                OptionGroup {
+                    id: rotateOpts
+                    options: ["Rotate Pitches", "Rotate Rhythm", "Rotate Pitches and Rhythm"]
                 }
-
-                StyledMenuLoader {
-                    id: menuLoader
-
-                    onHandleMenuItem: function(itemId) {
-                        var modeIndex = parseInt(itemId) % 7
-                        var groupIndex = Math.floor(parseInt(itemId) / 7)
-                        console.log(menuButton.items[groupIndex].subitems[modeIndex].title)
-                        menuButton.text = menuButton.items[groupIndex].subitems[modeIndex].title
-                        if (groupIndex == 3) {
-                            menuModeIndex = 0
-                            menuParentScale = menuButton.items[groupIndex].subitems[modeIndex].title
-
-                        } else {
-                            menuModeIndex = itemId % 7
-                            menuParentScale = menuButton.items[groupIndex].title
-                        }
+                RowLayout {
+                    Layout.leftMargin: 25
+                    spacing: 5
+                    StyledTextLabel { text: "Steps by which to rotate: " }
+                    IncrementalPropertyControl {
+                        id: stepBox
+                        width: 60
+                        Layout.preferredWidth: 60
+                        step: 1
+                        minValue: -10
+                        maxValue: 10
+                        currentValue: 1
+                        onValueEdited: function(newValue) { currentValue = newValue }
                     }
                 }
             }
-        }// Row
+        }
 
-        Column {
-            spacing: 10
-            CheckBox {
-                id: colorNotesBtn
-                text: qsTr("Color non-scale notes")
-                onClicked: checked = !checked
-            }
-            CheckBox {
-                id: mapScaleBtn
-                text: qsTr("Map notes to scale")
-                onClicked: checked = !checked
-                checked:true
+        // Retrograde
+        Item {
+            OptionGroup {
+                id: reverseOpts
+                options: ["Reverse Pitches", "Reverse Rhythm", "Reverse Pitches and Rhythm"]
             }
         }
-    }/// ColumnLayout
 
-    /////// Map Pitch Tab //////////////////////////
-    MyMapPitch {
-        id: myMapPitch
-        enabled: mapPitchTab.checked
-        visible: mapPitchTab.checked
-        anchors {
-            left: parent.left
-            top: bar.bottom
-            margins: 20
+        // Invert
+        Item {
+            ColumnLayout {
+                spacing: 12
+                StyledTextLabel { text: "Invert Using:" }
+                OptionGroup {
+                    id: invertOpts
+                    options: ["Outermost Pitches", "Specific Pitch:", "Axis (Negative Harmony):"]
+                }
+                RowLayout {
+                    spacing: 10
+                    Layout.topMargin: 18
+                    StyledTextLabel { text: "Diatonic" }
+                    ToggleButton {
+                        id: invertType
+                        checked: true
+                        onToggled: checked = !checked
+                    }
+                    StyledTextLabel { text: "Chromatic" }
+                }
+            }
+            PitchPicker {
+                id: invertPicker
+                visible: invertOpts.current === 1
+                x: 190
+                y: 68
+            }
+            MyCircle {
+                id: negativeHarmony
+                visible: invertOpts.current === 2
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.rightMargin: 30
+            }
+        }
+
+        // Map Scale
+        Item {
+            ColumnLayout {
+                spacing: 15
+                StyledTextLabel { text: "Map Unto:" }
+                Row {
+                    spacing: 5
+                    PitchPicker {
+                        id: mapPicker
+                        withOctave: false
+                    }
+                    FlatButton {
+                        FlatButtonMenuIndicatorTriangle {}
+                        id: menuButton
+                        text: "select mode"
+                        onClicked: menuLoader.toggleOpened(root.buildModeMenu())
+
+                        StyledMenuLoader {
+                            id: menuLoader
+                            onHandleMenuItem: function(itemId) {
+                                var parts = itemId.split(":")
+                                root.selectedScale = root.scaleDefs[parseInt(parts[0])]
+                                root.selectedMode = parseInt(parts[1])
+                                menuButton.text = root.selectedScale.modes[root.selectedMode]
+                            }
+                        }
+                    }
+                }
+                Column {
+                    spacing: 10
+                    CheckBox {
+                        id: colorNotesBtn
+                        text: qsTr("Color non-scale notes")
+                        onClicked: checked = !checked
+                    }
+                    CheckBox {
+                        id: mapScaleBtn
+                        text: qsTr("Map notes to scale")
+                        checked: true
+                        onClicked: checked = !checked
+                    }
+                }
+            }
+        }
+
+        // Map Pitch
+        Item {
+            MyMapPitch { id: myMapPitch }
         }
     }
 
-    //////////// Apply Button ///////////////////////
     RowLayout {
         spacing: 5
-        anchors{
+        anchors {
             bottom: parent.bottom
             right: parent.right
             margins: 10
@@ -1332,27 +614,8 @@ MuseScore {
         }
     }
 
-    // ButtonBox {
-    // anchors.right: parent.right
-    // anchors.bottom: parent.bottom
-    // anchors.margins: 10
-
-    // buttons: [ ButtonBoxModel.Close, ButtonBoxModel.Apply ]
-
-    //     onStandardButtonClicked: function(buttonId) {
-    //         if (buttonId === ButtonBoxModel.Close) {
-    //         root.parent.Window.window.close()
-    //         } else if (buttonId === ButtonBoxModel.Apply) {
-    //             applyTransform()
-    //         }
-    //     }
-    // }
-
     Shortcut {
-        sequence: "Esc"//StandardKey.Quit//"Escape"
-        //enabled: true
-        //context: Qt.WindowShortcut//Qt.ApplicationShortcut
+        sequence: "Esc"
         onActivated: root.parent.Window.window.close()
     }
-
 }
