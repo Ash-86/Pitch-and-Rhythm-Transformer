@@ -44,7 +44,7 @@ MuseScore {
     property int endStaff: 0
     property bool notesExist: false
 
-    property var selectedScale: null
+    property var selectedScale: scaleDefs[0]
     property int selectedMode: 0
 
     // pitch/tpc1 are relative to C = 0 / 14, starting one octave below
@@ -67,24 +67,10 @@ MuseScore {
         errorDialog.open()
     }
 
-    function validate() {
-        var opts = [rotateOpts, reverseOpts, invertOpts]
-        var tab = bar.currentIndex
-        if (tab < 3 && opts[tab].current < 0) return "Please select an option."
-        if (tab === 3) {
-            if (!selectedScale) return "Please choose a scale."
-            if (!mapScaleBtn.checked && !colorNotesBtn.checked) return "Please select an option."
-        }
-        return null
-    }
-
     function applyTransform() {
         cur = curScore.newCursor()
         cur.rewind(1)
         if (!cur.segment) return showError("No valid range selection on current score!")
-
-        var err = validate()
-        if (err) return showError(err)
 
         cur.rewind(2) // end of selection
         endTick = cur.tick || curScore.lastSegment.tick + 1 // tick 0 = selected to score end
@@ -107,11 +93,13 @@ MuseScore {
             cur.rewindToTick(startTick)
             if (!cur.element) return // voice doesn't exist
             switch (bar.currentIndex) {
-            case 0: rotate(rotateOpts.current); break
-            case 1: reverse(reverseOpts.current); break
-            case 2: invertTrack(invertOpts.current, invertType.checked); break
-            case 3: mapScale(); break
-            case 4: mapPitch(); break
+            case 0:
+                if (orderOp.current === 0) rotate(orderTarget.current)
+                else reverse(orderTarget.current)
+                break
+            case 1: invertTrack(invertOpts.current, chromaticBtn.checked); break
+            case 2: mapScale(); break
+            case 3: mapPitch(); break
             }
         })
         curScore.endCmd()
@@ -159,8 +147,8 @@ MuseScore {
     }
 
     // ----------------------------------------------- rotate / retrograde
-    function getArrays() { // pitches (with rests), onlyPitches (chords), rhythm, highest/lowest note
-        var pitches = [], onlyPitches = [], rhythm = []
+    function getArrays() { // chordRests (with rests), chords (chords), rhythm, highest/lowest note
+        var chordRests = [], chords = [], rhythm = []
         var Hnote = { pitch: 0, tpc: 0, tpc1: 0, tpc2: 0 }
         var Lnote = { pitch: 128, tpc: 128, tpc1: 128, tpc2: 128 }
 
@@ -178,9 +166,9 @@ MuseScore {
                     if (nt.pitch < Lnote.pitch) Lnote = item
                     chord.push(item)
                 }
-                onlyPitches.push(chord)
+                chords.push(chord)
             }
-            pitches.push(chord)
+            chordRests.push(chord)
 
             var d = { dur: [el.duration.numerator, el.duration.denominator], tup: null }
             if (el.tuplet) {
@@ -194,21 +182,21 @@ MuseScore {
             cur.next()
         }
 
-        if (!onlyPitches.length && !notesExist) {
+        if (!chords.length && !notesExist) {
             showError("Selection empty. No changes made!")
             return null
         }
-        return { pitches: pitches, onlyPitches: onlyPitches, rhythm: rhythm, Hnote: Hnote, Lnote: Lnote }
+        return { chordRests: chordRests, chords: chords, rhythm: rhythm, Hnote: Hnote, Lnote: Lnote }
     }
 
-    function rePitch(pitches) { // rewrite pitches only, keep rhythm
+    function rePitch(chords) { // rewrite pitches only, keep rhythm
         var i = 0
         cur.rewindToTick(startTick)
         while (cur.segment && cur.tick < endTick) {
             var el = cur.element
             if (el.type === Element.CHORD) {
                 for (var n = el.notes.length - 1; n >= 1; n--) el.remove(el.notes[n]) // keep lowest note
-                var p = pitches[i++]
+                var p = chords[i++]
                 el.notes[0].pitch = p[0].pitch
                 el.notes[0].tpc1 = p[0].tpc1
                 el.notes[0].tpc2 = p[0].tpc2
@@ -222,7 +210,7 @@ MuseScore {
         curScore.selection.selectRange(startTick, endTick, startStaff, endStaff)
     }
 
-    function reWrite(pitches, rhythm) { // rewrite pitches and rhythm
+    function reWrite(chordRests, rhythm) { // rewrite pitches and rhythm
         cur.rewindToTick(startTick)
         while (cur.segment && cur.tick < endTick) {
             var el = cur.element
@@ -232,7 +220,7 @@ MuseScore {
         cur.rewindToTick(startTick)
 
         var left = 0 // elements still to enter in the current tuplet
-        for (var i = 0; i < pitches.length; i++) {
+        for (var i = 0; i < chordRests.length; i++) {
             var r = rhythm[i]
             if (r.tup && left === 0) {
                 cur.addTuplet(fraction(r.tup.ratio[0], r.tup.ratio[1]), fraction(r.tup.dur[0], r.tup.dur[1]))
@@ -241,7 +229,7 @@ MuseScore {
             if (left > 0) left--
 
             cur.setDuration(r.dur[0], r.dur[1])
-            var p = pitches[i]
+            var p = chordRests[i]
             if (p === 'REST') cur.addRest()
             else p.forEach(function(note, j) { cur.addNote(note.pitch, j > 0) })
         }
@@ -273,9 +261,9 @@ MuseScore {
     }
 
     function applyOpt(opt, a, f) { // f: array -> array; 0 pitches, 1 rhythm, 2 both
-        if (opt === 0) rePitch(f(a.onlyPitches))
-        else if (opt === 1) reWrite(a.pitches, f(a.rhythm))
-        else reWrite(f(a.pitches), f(a.rhythm))
+        if (opt === 0) rePitch(f(a.chords))
+        else if (opt === 1) reWrite(a.chordRests, f(a.rhythm))
+        else reWrite(f(a.chordRests), f(a.rhythm))
         curScore.selection.selectRange(startTick, endTick, startStaff, endStaff)
     }
 
@@ -377,7 +365,7 @@ MuseScore {
         var pivot = getPivot(mapPicker.note, mapPicker.accidental, -1)
         var interval = pivot.pitch - (selectedScale.pitch[selectedMode] + 12) // +12: scale tables start at -12
         var map = buildScale(selectedScale, interval)
-        if (mapScaleBtn.checked) performMapping(map)
+        if (mapMode.current === 0) performMapping(map)
         else colorNotes(map)
     }
 
@@ -436,7 +424,7 @@ MuseScore {
     component OptionGroup: Column {
         id: og
         property var options: []
-        property int current: -1
+        property int current: 0
         spacing: 12
         ButtonGroup { id: grp }
         Repeater {
@@ -444,6 +432,7 @@ MuseScore {
             RoundedRadioButton {
                 ButtonGroup.group: grp
                 text: modelData
+                Component.onCompleted: if (index === og.current) checked = true
                 onCheckedChanged: if (checked) og.current = index
             }
         }
@@ -454,8 +443,7 @@ MuseScore {
         currentIndex: 0
         anchors.left: parent.left
         anchors.leftMargin: 15
-        StyledTabButton { text: "Rotate" }
-        StyledTabButton { text: "Retrograde" }
+        StyledTabButton { text: "Rotate / Retrograde" }
         StyledTabButton { text: "Invert" }
         StyledTabButton { text: "Map Scale" }
         StyledTabButton { text: "Map Pitch" }
@@ -475,73 +463,68 @@ MuseScore {
             margins: 20
         }
 
-        // Rotate
+        // Rotate / Retrograde
         Item {
-            ColumnLayout {
-                spacing: 35
-                OptionGroup {
-                    id: rotateOpts
-                    options: ["Rotate Pitches", "Rotate Rhythm", "Rotate Pitches and Rhythm"]
-                }
-                RowLayout {
-                    Layout.leftMargin: 25
-                    spacing: 5
-                    StyledTextLabel { text: "Steps by which to rotate: " }
-                    IncrementalPropertyControl {
-                        id: stepBox
-                        width: 60
-                        Layout.preferredWidth: 60
-                        step: 1
-                        minValue: -10
-                        maxValue: 10
-                        currentValue: 1
-                        onValueEdited: function(newValue) { currentValue = newValue }
+            RowLayout {
+                spacing: 40
+                ColumnLayout {
+                    Layout.alignment: Qt.AlignTop
+                    spacing: 12
+                    StyledTextLabel { text: "Operation:" }
+                    OptionGroup { id: orderOp; options: ["Rotate", "Retrograde"] }
+                    RowLayout {
+                        Layout.topMargin: 12
+                        enabled: orderOp.current === 0
+                        spacing: 5
+                        StyledTextLabel { text: "Steps: " }
+                        IncrementalPropertyControl {
+                            id: stepBox
+                            width: 60
+                            Layout.preferredWidth: 60
+                            step: 1
+                            minValue: -10
+                            maxValue: 10
+                            currentValue: 1
+                            onValueEdited: function(newValue) { currentValue = newValue }
+                        }
                     }
                 }
-            }
-        }
-
-        // Retrograde
-        Item {
-            OptionGroup {
-                id: reverseOpts
-                options: ["Reverse Pitches", "Reverse Rhythm", "Reverse Pitches and Rhythm"]
+                ColumnLayout {
+                    Layout.alignment: Qt.AlignTop
+                    spacing: 12
+                    StyledTextLabel { text: "Apply to:" }
+                    OptionGroup { id: orderTarget; options: ["Pitches", "Rhythm", "Pitches and Rhythm"] }
+                }
             }
         }
 
         // Invert
         Item {
-            ColumnLayout {
-                spacing: 12
-                StyledTextLabel { text: "Invert Using:" }
-                OptionGroup {
-                    id: invertOpts
-                    options: ["Outermost Pitches", "Specific Pitch:", "Axis (Negative Harmony):"]
-                }
-                RowLayout {
-                    spacing: 10
-                    Layout.topMargin: 18
-                    StyledTextLabel { text: "Diatonic" }
-                    ToggleButton {
-                        id: invertType
-                        checked: true
-                        onToggled: checked = !checked
+            RowLayout {
+                spacing: 30
+                ColumnLayout {
+                    Layout.alignment: Qt.AlignTop
+                    spacing: 12
+                    StyledTextLabel { text: "Invert Using:" }
+                    OptionGroup {
+                        id: invertOpts
+                        options: ["Outermost Pitches", "Specific Pitch", "Axis (Negative Harmony)"]
                     }
-                    StyledTextLabel { text: "Chromatic" }
+                    ButtonGroup { id: invertTypeGrp }
+                    RowLayout {
+                        Layout.topMargin: 18
+                        spacing: 20
+                        RoundedRadioButton { text: "Diatonic"; ButtonGroup.group: invertTypeGrp }
+                        RoundedRadioButton { id: chromaticBtn; text: "Chromatic"; checked: true; ButtonGroup.group: invertTypeGrp }
+                    }
                 }
-            }
-            PitchPicker {
-                id: invertPicker
-                visible: invertOpts.current === 1
-                x: 190
-                y: 68
-            }
-            MyCircle {
-                id: negativeHarmony
-                visible: invertOpts.current === 2
-                anchors.right: parent.right
-                anchors.top: parent.top
-                anchors.rightMargin: 30
+                StackLayout {
+                    Layout.alignment: Qt.AlignTop
+                    currentIndex: invertOpts.current
+                    Item {} // outermost pitches: nothing to pick
+                    PitchPicker { id: invertPicker }
+                    MyCircle { id: negativeHarmony }
+                }
             }
         }
 
@@ -559,7 +542,7 @@ MuseScore {
                     FlatButton {
                         FlatButtonMenuIndicatorTriangle {}
                         id: menuButton
-                        text: "select mode"
+                        text: "Ionian"
                         onClicked: menuLoader.toggleOpened(root.buildModeMenu())
 
                         StyledMenuLoader {
@@ -573,20 +556,7 @@ MuseScore {
                         }
                     }
                 }
-                Column {
-                    spacing: 10
-                    CheckBox {
-                        id: colorNotesBtn
-                        text: qsTr("Color non-scale notes")
-                        onClicked: checked = !checked
-                    }
-                    CheckBox {
-                        id: mapScaleBtn
-                        text: qsTr("Map notes to scale")
-                        checked: true
-                        onClicked: checked = !checked
-                    }
-                }
+                OptionGroup { id: mapMode; options: ["Map notes to scale", "Color non-scale notes"] }
             }
         }
 
