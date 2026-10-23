@@ -49,6 +49,9 @@ MuseScore {
     readonly property int whole: 201600 // 1920 ticks * 105: whole note in integer units, exact for 3, 5 and 7 tuplets
 
     property var selectedScale: scaleDefs[0]
+    property var srcScale: scaleDefs[0]
+    property int srcMode: 0
+    property bool keepAlter: true // degree mapping: carry chromatic alterations over to the target
     property int selectedMode: 0
 
     // pitch/tpc1 are relative to C = 0 / 14, starting one octave below
@@ -759,7 +762,7 @@ MuseScore {
         while (tpc1.some(function(x) { return x < 6 })) tpc1 = tpc1.map(function(x) { return x + 12 })
         var trans = getTrans()
         var map = { pitch: [], tpc1: [], tpc2: [] }
-        for (var j = 0; j < 11; j++) {
+        for (var j = 0; j < 12; j++) {
             scale.pitch.forEach(function(p) { map.pitch.push(p + shift + 12 * j) })
             tpc1.forEach(function(t) { map.tpc1.push(t); map.tpc2.push(t + trans) })
         }
@@ -781,6 +784,35 @@ MuseScore {
         })
     }
 
+    function performDegreeMapping(map) { // map: target scale; source scale from the "Map From" picker
+        var N = selectedScale.pitch.length
+        if (srcScale.pitch.length !== N) { performMapping(map); return } // degree counts differ
+        var sp = getPivot(srcPicker.note, srcPicker.accidental, -1)
+        var src = buildScale(srcScale, sp.pitch - (srcScale.pitch[srcMode] + 12))
+        var srcTpc = curScore.style.value('concertPitch') ? src.tpc1 : src.tpc2
+        forEachNote(function(n) {
+            var a = src.pitch.indexOf(n.pitch)
+            if (a < 0) { // chromatic note: anchor to the degree it is spelled from, else the closer one
+                a = 0
+                while (a + 1 < src.pitch.length && src.pitch[a + 1] < n.pitch) a++
+                if (a + 1 < src.pitch.length &&
+                        (n.tpc === srcTpc[a + 1] - 7 || src.pitch[a + 1] - n.pitch < n.pitch - src.pitch[a])) a++
+            }
+            var off = keepAlter ? n.pitch - src.pitch[a] : 0 // semitone alteration to carry over
+            var rel = ((a % N) - srcMode + N) % N // degree relative to the source root
+            var td = (rel + selectedMode) % N // same degree in the target
+            var best = td
+            for (var t = td; t < map.pitch.length; t += N) // octave closest to the source note
+                if (Math.abs(map.pitch[t] - src.pitch[a]) < Math.abs(map.pitch[best] - src.pitch[a])) best = t
+            var p = map.pitch[best] + off
+            if (p < 0 || p > 127) return
+            n.pitch = p
+            n.tpc1 = map.tpc1[best] + 7 * off
+            n.tpc2 = map.tpc2[best] + 7 * off
+        })
+        normalizeTpc()
+    }
+
     function colorNotes(map) {
         var red = "#e21c48"
         forEachNote(function(n) {
@@ -796,7 +828,8 @@ MuseScore {
         var interval = pivot.pitch - (selectedScale.pitch[selectedMode] + 12)   // +12: scale tables start at -12
         var map = buildScale(selectedScale, interval)
         if (mapMode.current === 0) performMapping(map)
-        else colorNotes(map)
+        else if (mapMode.current === 1) colorNotes(map)
+        else performDegreeMapping(map)
     }
 
     function buildModeMenu() {
@@ -851,11 +884,14 @@ MuseScore {
         onAccepted: errorDialog.close()
     }
 
-    component OptionGroup: Column {
+    component OptionGroup: Flow {
         id: og
         property var options: []
+        property var tips: []
         property int current: 0
-        spacing: 12
+        property bool horizontal: false
+        flow: horizontal ? Flow.LeftToRight : Flow.TopToBottom
+        spacing: horizontal ? 20 : 12
         ButtonGroup { id: grp }
         Repeater {
             model: og.options
@@ -864,6 +900,10 @@ MuseScore {
                 text: modelData
                 Component.onCompleted: if (index === og.current) checked = true
                 onCheckedChanged: if (checked) og.current = index
+
+                ToolTip.visible: hovered && ToolTip.text !== ""
+                ToolTip.delay: 500
+                ToolTip.text: og.tips[index] || ""
             }
         }
     }
@@ -1013,31 +1053,83 @@ MuseScore {
         Item {
             ColumnLayout {
                 spacing: 15
-                StyledTextLabel { text: "Map Unto:" }
-                Row {
-                    spacing: 5
-                    PitchPicker {
-                        id: mapPicker
-                        withOctave: false
-                    }
-                    FlatButton {
-                        FlatButtonMenuIndicatorTriangle {}
-                        id: menuButton
-                        text: "Ionian"
-                        onClicked: menuLoader.toggleOpened(root.buildModeMenu())
+                OptionGroup {
+                    id: mapMode
+                    horizontal: true
+                    options: ["Nearest pitch", "Color non-scale", "Scale degree"]
+                    tips: [
+                        "Moves each note to the nearest note of the 'Map Unto' scale. Different notes can end up on the same pitch.",
+                        "Leaves pitches unchanged and colors notes that are not in the 'Map Unto' scale.",
+                        "Re-reads the melody in another scale: each degree of the 'Map From' scale becomes the same degree of the 'Map Unto' scale, and chromatic alterations are kept. Falls back to Nearest pitch when the two scales have different numbers of notes."
+                    ]
+                }
+                ColumnLayout {
+                    spacing: 12
+                    ColumnLayout {
+                        enabled: mapMode.current === 2
+                        spacing: 8
+                        StyledTextLabel { text: "Map From:" }
+                        Row {
+                            spacing: 5
+                            PitchPicker {
+                                id: srcPicker
+                                withOctave: false
+                            }
+                            FlatButton {
+                                FlatButtonMenuIndicatorTriangle {}
+                                id: srcMenuButton
+                                text: "Ionian"
+                                onClicked: srcMenuLoader.toggleOpened(root.buildModeMenu())
 
-                        StyledMenuLoader {
-                            id: menuLoader
-                            onHandleMenuItem: function(itemId) {
-                                var parts = itemId.split(":")
-                                root.selectedScale = root.scaleDefs[parseInt(parts[0])]
-                                root.selectedMode = parseInt(parts[1])
-                                menuButton.text = root.selectedScale.modes[root.selectedMode]
+                                StyledMenuLoader {
+                                    id: srcMenuLoader
+                                    onHandleMenuItem: function(itemId) {
+                                        var parts = itemId.split(":")
+                                        root.srcScale = root.scaleDefs[parseInt(parts[0])]
+                                        root.srcMode = parseInt(parts[1])
+                                        srcMenuButton.text = root.srcScale.modes[root.srcMode]
+                                    }
+                                }
                             }
                         }
                     }
+                    ColumnLayout {
+                        spacing: 8
+                        StyledTextLabel { text: "Map Unto:" }
+                        Row {
+                            spacing: 5
+                            PitchPicker {
+                                id: mapPicker
+                                withOctave: false
+                            }
+                            FlatButton {
+                                FlatButtonMenuIndicatorTriangle {}
+                                id: menuButton
+                                text: "Ionian"
+                                onClicked: menuLoader.toggleOpened(root.buildModeMenu())
+
+                                StyledMenuLoader {
+                                    id: menuLoader
+                                    onHandleMenuItem: function(itemId) {
+                                        var parts = itemId.split(":")
+                                        root.selectedScale = root.scaleDefs[parseInt(parts[0])]
+                                        root.selectedMode = parseInt(parts[1])
+                                        menuButton.text = root.selectedScale.modes[root.selectedMode]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    CheckBox {
+                        enabled: mapMode.current === 2
+                        text: "Keep alterations"
+                        checked: root.keepAlter
+                        onClicked: root.keepAlter = !root.keepAlter
+                        ToolTip.visible: hovered
+                        ToolTip.delay: 500
+                        ToolTip.text: "Chromatic notes keep their sharp/flat relative to their scale degree. Off: they snap to the degree and the result stays inside the target scale."
+                    }
                 }
-                OptionGroup { id: mapMode; options: ["Map notes to scale", "Color non-scale notes"] }
             }
         }
 
@@ -1051,9 +1143,32 @@ MuseScore {
         spacing: 5
         anchors {
             bottom: parent.bottom
+            left: parent.left
             right: parent.right
             margins: 10
         }
+        FlatButton {
+            icon: IconCode.INFO
+            onClicked: dialog.open()
+            transparent: true
+
+            StyledDialogView {
+                id: dialog
+                width: 400
+                height: 400
+                margins: 20
+                contentWidth: 300
+
+                StyledTextLabel {
+                    anchors.fill: parent
+                    wrapMode: Text.WordWrap
+                    text: qsTr("<h2>Pitch and Rhythm Transformer</h2><br><br>Performs pitch and rhythm transformations on selections, including rotation, retrograde, inversion, scale mapping, and pitch mapping. It handles tied notes, nested tuplets, compound meters, and transposing instruments, and supports multiple voices and staff selections. Transformations can target rhythm, pitches, or both.<br><br>For questions, issues, or suggestions, please contact via the GitHub repository.<br><br> © 2025 Ashraf EL Droubi <br><br> This software is licensed under the <a href=\"%2\">GNU General Public License v3.0</a>   <br><br><a href=\"%1\">GitHub repository</a>")
+                        .arg("https://github.com/Ash-86/Pitch-and-Rhythm-Transformer")
+                        .arg("https://www.gnu.org/licenses/gpl-3.0.html")
+                }
+            }
+        }
+        Item { Layout.fillWidth: true }
         Timer {
             id: applyTimer
             interval: 500
