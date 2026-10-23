@@ -78,8 +78,9 @@ Item {
             y: root.height / 2 + Math.sin(n * root.angle + root.angle / 2) * root.centerR
             StyledTextLabel {
                 anchors.centerIn: parent
+                textFormat: Text.RichText
                 text: modelData
-                font: ui.theme.largeBodyFont
+                font.family: "Edwin" 
             }
         }
     }
