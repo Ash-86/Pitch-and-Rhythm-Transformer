@@ -204,9 +204,12 @@ MuseScore {
         }
 
         var notes = [], prevTied = false
-        leaves.forEach(function(l) { // a tied chain is one note with several pieces
+        leaves.forEach(function(l) { // a tied chain is one note with several pieces; consecutive rests are one rest
             var piece = { len: l.len, dur: l.dur, tups: l.tups, arts: l.arts }
-            if (prevTied && l.content !== 'REST') notes[notes.length - 1].pieces.push(piece)
+            var last = notes.length ? notes[notes.length - 1] : null
+            var joinTie = prevTied && l.content !== 'REST'
+            var joinRest = l.content === 'REST' && last && last.content === 'REST'
+            if (joinTie || joinRest) last.pieces.push(piece)
             else notes.push({ content: l.content, pieces: [piece] })
             prevTied = l.tiedOn
         })
