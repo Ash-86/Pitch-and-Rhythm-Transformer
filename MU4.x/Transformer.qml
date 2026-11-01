@@ -44,6 +44,7 @@ MuseScore {
     property int endStaff: 0
     property bool notesExist: false
     property int rotDir: 1 // 1 forward, -1 backward
+    property bool restsExtend: false // off: rests rotate as separate items; on: a rest stays attached to the note before it
     property bool keepTuplets: true // off: always re-notate from the beat grid
     property bool fallbackGrid: true // off: cancel when a broken tuplet can't be regrouped
     readonly property int whole: 201600 // 1920 ticks * 105: whole note in integer units, exact for 3, 5 and 7 tuplets
@@ -214,12 +215,19 @@ MuseScore {
             prevTied = l.tiedOn
         })
 
+        var units = []   // on: a note (tied chain) plus the rests that follow it; off: one unit per note or rest
+        notes.forEach(function(n) {
+            var u = units.length ? units[units.length - 1] : null
+            if (restsExtend && n.content === 'REST' && u && u.note.content !== 'REST') u.rests = u.rests.concat(n.pieces)
+            else units.push({ note: n, rests: [] })
+        })
+
         var chords = notes.filter(function(n) { return n.content !== 'REST' }).map(function(n) { return n.content })
         if (!chords.length && !notesExist) {
             showError("Selection empty. No changes made!")
             return null
         }
-        return { notes: notes, chords: chords, Hnote: Hnote, Lnote: Lnote, grid: grid }
+        return { notes: notes, units: units, chords: chords, Hnote: Hnote, Lnote: Lnote, grid: grid }
     }
 
     function leafCount(t) { // chordrests inside a tuplet, nested ones included
@@ -679,15 +687,25 @@ MuseScore {
             if (opt === 0) {
                 rePitch(f(a.chords)) // one entry per tied chain
             } else {
-                var notes = f(a.notes).map(function(n, i) {
-                    var pieces = reversed ? n.pieces.slice().reverse() : n.pieces
+                var units = f(a.units).map(function(u, i) {
+                    var pieces = reversed ? u.note.pieces.slice().reverse() : u.note.pieces
+                    var note
                     if (opt === 1) { // rhythm only: content and its articulations stay in slot i
-                        var slot = a.notes[i]
-                        return { content: slot.content, pieces: pieces.map(function(p, k) {
+                        var slot = a.units[i].note
+                        note = { content: slot.content, pieces: pieces.map(function(p, k) {
                             return { len: p.len, dur: p.dur, tups: p.tups, arts: slot.pieces[k] ? slot.pieces[k].arts : [] }
                         }) }
+                    } else {
+                        note = { content: u.note.content, pieces: pieces }
                     }
-                    return { content: n.content, pieces: pieces }
+                    return { note: note, rests: u.rests }
+                })
+                var notes = []
+                units.forEach(function(u) { // flatten: rest follows its note, precedes it when reversed
+                    var r = u.rests.length ? { content: 'REST', pieces: reversed ? u.rests.slice().reverse() : u.rests } : null
+                    if (r && reversed) notes.push(r)
+                    notes.push(u.note)
+                    if (r && !reversed) notes.push(r)
                 })
                 var L = simplifyTuplets(layout(notes, a.grid))
                 reWrite(L.chordRests, L.rhythm, L.tied, L.arts)
@@ -1004,6 +1022,16 @@ MuseScore {
                         ToolTip.visible: hovered
                         ToolTip.delay: 500
                         ToolTip.text: "If a broken tuplet can't be regrouped, rewrite the whole selection on the beat grid. \nOff: cancel with an error and change nothing."
+                    }
+                    StyledTextLabel { Layout.topMargin: 6; text: "Rests:" }
+                    CheckBox {
+                        text: "Rests extend note"
+                        enabled: orderTarget.current !== 0 && orderOp.current === 0   // rotation only: pitch-only ignores rests, retrograde gives the same result
+                        checked: root.restsExtend
+                        onClicked: root.restsExtend = !root.restsExtend
+                        ToolTip.visible: hovered
+                        ToolTip.delay: 500
+                        ToolTip.text: "A rest stays attached to the note before it and moves with it when rotating. \nOff: every rest rotates as its own item."
                     }
                 }
             }
